@@ -1,0 +1,98 @@
+# Show TCP sequence numbers read from the specified interface's traffic
+# graphically. If you click on the points with the mouse, the IP address
+# of the associated host is shown, and all the traffic about that
+# host gets highlighted.
+
+if {![llength $argv]} {
+    puts stderr "Please, specify the name of an interface"
+    exit
+}
+set ifname [lindex $argv 0]
+
+package require Tk
+source hpingstdlib.htcl
+
+set bgcolor {#000000}
+wm title . {hping3 -- show-tcpseq}
+set w .main
+frame $w
+pack $w -side top
+. config -background $bgcolor
+$w config -background $bgcolor
+
+# colors
+set colors {red green blue gray yellow purple cyan brown}
+set coloridx 0
+array set hosts {}
+set start_time [clock seconds]
+
+proc getcolor {} {
+    global colors coloridx
+
+    set l [llength $colors]
+    set i [expr $coloridx % $l]
+    set c [lindex $colors $i]
+    incr coloridx
+    return $c
+}
+
+# canvas
+set xres 1024
+set yres 760
+canvas $w.can -width $xres -height $yres
+$w.can config -background $bgcolor
+pack $w.can -fill both -expand true
+$w.can bind all <Button-1> {ButtonPress %x %y %W}
+$w.can bind all <ButtonRelease-1> {ButtonRelease %x %y %W}
+
+# bindings
+proc ButtonPress {x y W} {
+    global tag
+
+    set id [$W find closest $x $y]
+    set tags [$W gettags $id]
+    set tag [lindex $tags 0]
+    set name [hping resolve -ptr $tag]
+
+    # Highlight all the points about that IP address
+    $W itemconfigure $tag -width 1 -outline gray70
+    $W create text $x $y -text $name -tag nametext -fill white -anchor n
+}
+
+proc ButtonRelease {x y W} {
+    global tag hosts
+
+    # Restore the color
+    $W itemconfigure $tag -width 0
+    $W delete nametext
+}
+
+# main loop
+while {1} {
+    set packets [hping recv $::ifname 100]
+    foreach p $packets {
+    	if {![hping hasfield tcp seq $p]} continue
+	set seq [hping getfield tcp seq $p]
+	set ip [hping getfield ip saddr $p]
+	if {[haskey hosts $ip]} {
+		set color $hosts($ip)
+	} else {
+		set color [getcolor]
+		set hosts($ip) $color
+	}
+	set now [clock seconds]
+	set elapsed [expr {$now-$start_time}]
+	if {$elapsed >= $xres} {
+	    set start_time $now
+	    set elapsed 0
+	    $w.can delete all
+	}
+	set y [expr {int($seq/5651272)}]
+	set x $elapsed
+	#puts "$seq -> $y"
+	$w.can create oval $x $y [expr $x+3] [expr $y+3] -fill $color -width 0 -tag $ip
+    }
+    update
+}
+
+# vim: filetype=tcl softtabstop=4

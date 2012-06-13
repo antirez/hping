@@ -1,0 +1,17 @@
+# Example hping2rc adding support for readline
+
+catch {package require tclreadline}
+if {[catch {package present tclreadline} x]} {
+	puts $x
+	set has_readline 0
+} else {
+	set has_readline 1
+}
+if {$tcl_interactive && $has_readline} {
+    package require tclreadline
+    proc ::tclreadline::prompt1 {} {
+        global hping_version
+    	return "hping$hping_version\> "
+    }
+    tclreadline::Loop
+}

@@ -1,0 +1,166 @@
+#!/bin/sh
+
+show_help()
+{
+	echo configure help:
+	echo "--help               show this help"
+	echo "--no-tcl             disable TCL scripting support"
+	echo "                     even if uid != euid"
+}
+
+if [ "$1" = "--help" ]; then
+	show_help
+	exit 0
+fi
+
+CC=${CC:=cc}
+
+echo build byteorder.c...
+$CC byteorder.c -o byteorder || exit 1
+
+INSTALL_MANPATH=`echo $MANPATH|cut -f1 -d:`
+if [ "$INSTALL_MANPATH" = "" ]; then
+	INSTALL_MANPATH="/usr/local/man"
+fi
+BYTEORDER=`./byteorder -m`
+
+echo create byteorder.h...
+cat > byteorder.h <<EOF
+#ifndef __BYTEORDER_H
+#define __BYTEORDER_H
+
+EOF
+echo \#ifndef $BYTEORDER >> byteorder.h
+echo \#define $BYTEORDER >> byteorder.h
+echo \#endif /\* $BYTEORDER \*/ >> byteorder.h
+cat >> byteorder.h <<EOF
+
+#endif /* __BYTEORDER_H */
+EOF
+
+CONFIGOSTYPE=`uname -s | tr [a-z] [A-Z]`
+if [ ! "$CONFIGOSTYPE" ]; then
+	CONFIGOSTYPE=UNKNOWN
+fi
+
+# for BSD/OS use the historical name as it doesn't include '/'
+if [  $CONFIGOSTYPE = "BSD/OS" ]; then
+	CONFIGOSTYPE=BSDI
+fi
+
+case $CONFIGOSTYPE in
+  SUNOS)
+    SOLARISLIB="-lsocket -lresolv -lnsl"
+    BUG='/* #define STUPID_SOLARIS_CHECKSUM_BUG */'
+    case `uname -r` in
+      2.0*|5.0*|2.1*|5.1*|2.2*|5.2*|2.3*|5.3*|2.4*|5.4*|5.5.1)
+               BUG='#define STUPID_SOLARIS_CHECKSUM_BUG' ;;
+    esac
+esac
+
+#
+# TCL detection
+#
+for TCLPATH_TRY in "/usr/bin/" "/usr/local/bin/" "/bin/"
+do
+	for TCLVER_TRY in "8.4" "8.3" "8.2" "8.1" "8.0"
+	do
+		if [ -z $TCLSH ]
+		then
+			TCLSH_TRY=${TCLPATH_TRY}tclsh${TCLVER_TRY}
+			if [ -f $TCLSH_TRY ]
+			then
+				TCLSH=$TCLSH_TRY
+				echo "===> Found Tclsh in: $TCLSH"
+			fi
+		fi
+	done
+done
+if [ -f $TCLSH ]
+then
+	TCL_VER=`echo puts \\$tcl_version | $TCLSH -`
+	USE_TCL='-DUSE_TCL'
+	TCL_LIB="-ltcl${TCL_VER}"
+	if [ -e /usr/include/tcl${TCL_VER} ]
+	then
+		TCL_INC="-I/usr/include/tcl${TCL_VER}"
+	elif [ -e /usr/include/tcl.h ]
+	then
+		TCL_INC=""
+	elif [ -e /usr/local/include/tcl${TCL_VER} ]
+	then
+		TCL_INC="-I/usr/local/include/tcl${TCL_VER}"
+	else
+		USE_TCL=""
+		TCL_LIB=""
+		echo "==> WARNING: no Tcl header files found!"
+	fi
+fi
+if [ -n $USE_TCL ]
+then
+	LIBPOSTFIX=`ls -1 /usr/local/lib/ /usr/lib | grep 'libtcl[0-9]' | grep so | sed -e 's/\.so.*//g' -e 's/libtcl//g' | sort -r | head -1`
+	TCL_LIB="-ltcl${LIBPOSTFIX} -lm -lpthread"
+fi
+
+#
+# configurable stuff
+#
+PCAP="PCAP=-lpcap"
+PCAP_INCLUDE=""
+
+for ARG in $*; do
+	case "$ARG" in
+		*"--no-tcl")
+			USE_TCL=""
+			TCL_VER=""
+			TCL_INC=""
+			TCL_LIB=""
+			;;
+	esac
+done
+
+echo --------------------------------------
+echo system type: $CONFIGOSTYPE
+echo
+echo "LIBPCAP      : $PCAP"
+echo "PCAP_INCLUDE : $PCAP_INCLUDE"
+echo "MANPATH      : $INSTALL_MANPATH"
+echo "USE_TCL      : $USE_TCL"
+echo "TCL_VER      : $TCL_VER"
+echo "TCL_INC      : $TCL_INC"
+echo "LIBTCL       : $TCL_LIB"
+echo "TCLSH        : $TCLSH"
+echo
+echo "(to modify try configure --help)"
+echo --------------------------------------
+
+echo creating Makefile...
+sed	-e "s^@PCAP@^$PCAP^g" \
+	-e "s^@PCAP_INCLUDE@^$PCAP_INCLUDE^g" \
+	-e "s^@MANPATH@^$INSTALL_MANPATH^g" \
+	-e "s^@SOLARISLIB@^$SOLARISLIB^g" \
+	-e "s^@USE_TCL@^$USE_TCL^g" \
+	-e "s^@TCL_INC@^$TCL_INC^g" \
+	-e "s^@TCL_VER@^$TCL_VER^g" \
+	-e "s^@TCL_LIB@^$TCL_LIB^g" \
+	<Makefile.in > Makefile
+
+#
+#
+#
+
+cat > systype.h <<EOF
+#ifndef __SYSTYPE_H
+#define __SYSTYPE_H
+
+EOF
+echo \#define OSTYPE_${CONFIGOSTYPE} >> systype.h
+cat >> systype.h <<EOF
+
+#endif /* SYSTYPE_H */
+EOF
+
+echo creating dependences...
+$CC -MM *.c > .depend
+
+echo now you can try \`make\'

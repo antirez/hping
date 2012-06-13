@@ -1,0 +1,125 @@
+ARS Packet Description system
+
+  This document describes the APD format. APD is a way to describe TCP/IP
+  packets, and it is used in high level functions of the ARS library.
+  The general format is the following:
+
+	layer_type{field_1=value_1,field_2=value_2,...,field_n=value_n}
+
+  more layers can be combined using the "+" simbol. Example:
+
+	ip{dst=192.168.1.2}+udp{sport=53,dport=53}+data{file=./dns.packet}
+
+  You don't need to specify fields that ARS can guess. For example
+  if you don't specify checksums they will be correctly generated
+  in the process of packet compilation.
+
+  AVAILABLE LAYERS
+  ~~~~~~~~~~~~~~~~
+
+  A layer type is one of the following:
+
+	ip			IP header
+	ipopt.eol		IP option EOL
+	ipopt.nop		IP option NOP
+	ipopt.sec		IP option Security
+	ipopt.sid		IP option Stream ID
+	ipopt.lsrr		IP option Loose Source Routing
+	ipopt.ssrr		IP option Strict Source Routing
+	ipopt.rr		IP option Record Route
+	ipopt.ts		IP option Timestamp
+	udp			UDP header
+	tcp			TCP header
+	tcpopt.eol		TCP option END (EOL)
+	tcpopt.nop		TCP option NOP
+	tcpopt.mss		TCP option Max Segment Size
+	tcpopt.wscale		TCP option Window Scale
+	tcpopt.sackperm		TCP option Selective ACK permitted
+	tcpopt.sack		TCP option Selective ACK
+	tcpopt.echoreq		TCP option Echo Request
+	tcpopt.echoreply	TCP option Echo Reply
+	tcpopt.ts		TCP option Timestamp
+	icmp			ICMP header
+	data			Generic Data
+
+  Different fields are defined for different layer types:
+
+  IP FIELDS:	DESCRIPTION:		POSSIBLE VALUE:
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  saddr		Source address		192.168.1.2, or www.yahoo.com
+  daddr		Destination address	192.168.1.2, or www.yahoo.com
+  ihl		IP header len		numerical value
+  ver		IP version		numerical value
+  tos		Type of Service		numerical value
+  totlen	IP tot len		numerical value
+  id		IP packet ID		numerical value
+  fragoff	IP fragment offset	numerical vaule
+  mf		More Fragment		0 or 1
+  df		Dont Fragment		0 or 1
+  rf		Reserved Frag. bit	0 or 1
+  ttl		Time to Live		numerical value
+  proto		ip protocol field	numerical value
+  cksum		ip checksum		numerical value
+
+  UDP FIELDS:	DESCRIPTION:		POSSIBLE VALUE:
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  sport		Source port		numerical value
+  dport		Destination port	numerical value
+  len		UDP len field		numerical value
+  cksum		UDP checksum		numerical value
+
+  TCP FIELDS:	DESCRIPTION:		POSSIBLE VALUE:
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  sport		Source port		numerical value
+  dport		Destination port	numerical value
+  seq		TCP sequence number	numerical value
+  ack		TCP acknowledge number	numerical value
+  x2		TCP reserved bits	numerical value
+  off		TCP header size		numerical value
+  flags		TCP flags		FSRPAUXY (see the example)
+  win		TCP window		numerical value
+  cksum		TCP checksum		numerical value
+  urp		TCP urgent pointer	numerical value
+
+  ICMP FIELDS:	DESCRIPTION:		POSSIBLE VALUE:
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  type		ICMP type		numerical value
+  code		ICMP code		numerical value
+  cksum		ICMP cksum		numerical value
+  id		ICMP echo ID		numerical value
+  seq		ICMP echo sequence nr   numerical value
+  gw		ICMP gateway		192.168.1.2 or www.yahoo.com
+  unused	ICMP 32bit id/seq/gw	numerical value
+
+  DATA FIELDS:	DESCRIPTION:		POSSIBLE VALUE:
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  file		Data file		/etc/passwd
+  str		A string		hello world! (no escaping available)
+  uint32	A 32bit integer		numerical value
+  uint24	A 24bit integer		numerical value
+  uint16	A 16bit integer		numerical value
+  uint8		A 8bit integer		numerical value
+
+  Other layer types fields aren't still implemented, anyway
+  most of this contains sane defaults, (like IP record route option
+  and so on).
+
+  You can specify numerical values as hex, octal and decimal numbers.
+
+  Decimail:	10
+  Hex:		0xA
+  Octal:	012
+
+  Examples
+  ~~~~~~~~
+
+  /* Just an ICMP echo request */
+  ip{saddr=1.2.3.4,daddr=www.yahoo.com}+icmp{type=8,code=0}\
+  +data{str=hello world}
+
+  /* An ICMP destination unreachable with the quoted UDP packet */
+  ip{saddr=1.2.3.4,daddr=5.6.7.8}+icmp{type=3,code=3}\
+  +ip{saddr=www.yahoo.com,daddr=1.2.3.4}+udp{sport=53,dport=53}\
+
+  /* A TCP packet with the SYN flag set */
+  ip{saddr=1.2.3.4,daddr=5.6.7.8}+tcp{flags=S,dport=80,sport=10}

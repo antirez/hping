@@ -1,0 +1,119 @@
+The following is the original posting to bugtraq
+about spoofed/indirect/idle scan method. See
+the HPING2-HOWTO for more informations.
+
+antirez
+
+---
+
+  Hi,
+
+        I have uncovered a new tcp port scan method.
+        Instead all others it allows you to scan using spoofed
+        packets, so scanned hosts can't see your real address.
+        In order to perform this i use three well known tcp/ip
+        implementation peculiarities of most OS:
+
+          (1) * hosts reply SYN|ACK to SYN if tcp target port is open,
+            reply RST|ACK if tcp target port is closed.
+
+          (2) * You can know the number of packets that hosts are sending
+            using id ip header field. See my previous posting 'about the ip
+            header' in this ml.
+
+          (3) * hosts reply RST to SYN|ACK, reply nothing to RST.
+
+
+        The Players:
+
+          host A - evil host, the attacker.
+          host B - silent host.
+          host C - victim host.
+
+        A is your host.
+        B is a particular host: It must not send any packets while
+          you are scanning C. There are a lot of 'zero traffic' hosts
+          in internet, especially in the night :)
+        C is the victim, it must be vulnerable to SYN scan.
+
+        I've called this scan method 'dumb host scan' in honour of host
+        B characteristics.
+
+
+        How it works:
+
+        Host A monitors number of outgoing packets from B using id iphdr.
+        You can do this simply using hping:
+
+#hping B -r
+HPING B (eth0 xxx.yyy.zzz.jjj): no flags are set, 40 data bytes
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=0 ttl=64 id=41660 win=0 time=1.2 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=1 ttl=64 id=+1 win=0 time=75 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=2 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=3 ttl=64 id=+1 win=0 time=90 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=4 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=5 ttl=64 id=+1 win=0 time=87 ms
+-cut-
+..
+.
+
+        As you can see, id increases are always 1. So this host have the
+        characteristics that host B should to own.
+
+        Now host A sends SYN to port X of C spoofing from B.
+        (using hping => 0.67 is very easy, http://www.kyuzz.org/antirez)
+        if port X of C is open, host C will send SYN|ACK to B (yes,
+        host C don't know that the real sender is A). In this
+        case host B replies to SYN|ACK with a RST.
+        If we send to host C a few of SYN it will reply to B with a few
+        of SYN|ACK, so B will reply to C a few of RST... so
+        we'll see that host B is sending packets!
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=17 ttl=64 id=+1 win=0 time=96 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=18 ttl=64 id=+1 win=0 time=80 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=19 ttl=64 id=+2 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=20 ttl=64 id=+3 win=0 time=94 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=21 ttl=64 id=+1 win=0 time=92 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=22 ttl=64 id=+2 win=0 time=82 ms
+-cut-
+..
+.
+
+        The port is open!
+
+        Instead, if port X of C is closed sending to C a few
+        of SYN spoofed from B, it will reply with RST to B, and
+        B will not reply (see 3). So we'll see that host B is not sending
+        any packet:
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=52 ttl=64 id=+1 win=0 time=85 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=53 ttl=64 id=+1 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=54 ttl=64 id=+1 win=0 time=93 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=55 ttl=64 id=+1 win=0 time=74 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=56 ttl=64 id=+1 win=0 time=95 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=57 ttl=64 id=+1 win=0 time=81 ms
+-cut-
+..
+.
+
+        The port is closed.
+
+        All this can appear complicated to perform, but using two sessions
+        of hping on Linux virtual consoles or under X makes it more simple.
+        First session listen host B: hping B -r
+        Second session send spoofed SYN: hping C -a B -S
+
+        Sorry if my english is not so clear.
+        However this posting is not adequate to describe exaustively
+        this scan method, so i'll write a paper on this topic, specially
+        about how to implement this in a port scanner (i.e. nmap), and
+        about players characteristics and OS used.
+
+happy new year,
+antirez

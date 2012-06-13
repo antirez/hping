@@ -1,0 +1,14 @@
+source "hpingstdlib.htcl"
+
+proc recv {} {
+	set xx [hping recv -hexdata eth0 0 100]
+	foreach x $xx {
+		if {[GetIpDaddr $x] == "192.168.1.20"} {
+			puts "$x\n"
+		}
+	}
+	after 10 recv
+}
+
+after 10 recv
+vwait forever

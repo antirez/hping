@@ -1,0 +1,72 @@
+Vous pouvez compiler hping2 au moins sur :
+
+Linux
+OpenBSD
+FreeBSD
+NetBSD
+Solaris
+
+Avec Linux vous n'avez besoin d'aucune bibliothèque, ni d'être root,
+cependant vous avez besoin d'un uid 0 pour exécuter hping.
+
+Linux
+-----
+
+merci de suivre les étapes suivantes :
+
+$ ./configure (essayer d'abord ./configure --help)
+$ vi Makefile (facultatif)
+$ make
+$ su
+# make install
+
+FreeBSD, OpenBSD, NetBSD
+------------------------
+
+Vous aurez besoin de la libpcap et le l'utilitaire gmake installés sur votre
+système.
+
+$ ./configure
+$ gmake
+$ su (ou calife)
+# gmake install
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+NOTE : vous devez faire attention à votre fichier net/bpf.h en installant
+  sur les systèmes BSD (spécialement avec OpenBSD). Si votre fichier bpf.h
+  original a été écrasé avec celui de libpcap alors probablement que hping
+  ne fonctionnera pas avec certaines interfaces.
+
+  Par exemple si vous utilisez le fichier bpf.h de libpcap sur OpenBSD alors
+  hping ne fonctionnera pas sur les interfaces PPP.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Solaris
+--------
+
+$ export CC="gcc"
+$ ./configure
+$ gmake
+$ su
+# gmake install
+
+TOUS
+----
+
+Si vous avez besoin d'exécuter hping2 avec votre compte normal (c.-à-d.
+antirez) essayez les commandes suivantes :
+
+# chown root:antirez /usr/sbin/hping2
+# chmod 4750 /usr/sbin/hping2
+
+	ATTENTION : hping2 n'est pas du code de confiance,
+	je ne l'ai pas audité pour les débordements de
+	tampons cachés et autres problèmes en relation avec
+	la sécurité. Cependant si (comme par défaut)
+	LIMITWHENSUID est défini alors si euid != uid il
+	n'est pas possible d'utiliser beaucoup d'options
+	triviallement non sûres.
+
+	le rendre suid n'est pas encouragé.
+
+antirez

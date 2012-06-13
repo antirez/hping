@@ -1,0 +1,475 @@
+N.B. : ce HOWTO n'est pas terminé, et par endroits très bête. Je laisse cela
+      ici seulement parce que peut être que c'est mieux que rien.
+
+HPING2 HOWTO
+
+Changes Log
+-----------
+Aug 7 1999		vi HPING2-HOWTO.txt
+Aug 8 1999		__0000, __0001, __0002, __0003
+Aug 10 1999		__0004
+
+Index
+-----
+[cherchez __XXXX afin de sauter au point que vous souhaitez]
+
+	__0000: Avis de copyright
+	__0001: Qu'est ce que hping ?
+        __0002: Qu'est ce que j'ai besoin de connaître de TCP/IP pour
+                utiliser hping ?
+	__0003: Premiers pas avec hping
+	__0004: Le champ IP id et comment scanner des ports TCP en utilisant
+                de l'usurpation d'adresse.
+	__0005: Comment tester des règles de filtrage. (A faire)
+	__0006: Comment transférer des fichier au travers de firewalls. (A
+                faire)
+
+	__000A: Exemple d'utilisation de hping (A faire)
+
+__0000: Avis de copyright, Licence, et tout ce genre de choses
+
+  Copyright (C) Salvatore Sanfilippo, 1999.
+
+  La permission est accordée de faire et distribuer des copies de ce manuel
+  à condition que l'avis de copyright et cet avis de permission soient
+  préservés sur toutes les copies.
+
+  Permission est accordée de copier et distribuer des versions modifiées de
+  ce manuel sous les conditions de copie verbatim, à condition que le
+  travail dérivé soit distribué sous les termes d'un avis de permission
+  identique à celui-ci. Les traductions tombent dans la catégorie des
+  ''versions modifiées.''
+
+  Garantie : Aucune.
+
+  Recommandations : les redistributions commerciales sont autorisées et
+  encouragées; cependant, il est fortement recommandé que le redistributeur
+  contacte l'auteur avant redistribution, dans l'intérêt de garder les
+  choses à jour (vous pouvez m'envoyer une copie de ce que vous faites
+  pendant que vous y êtes). Les traducteurs sont également encouragés à
+  contacter l'auteur avant traduction. Le version imprimée aura plus
+  d'allure.
+  Recyclez.
+
+__0001 : Qu'est ce que hping ?
+
+  Hping est un logiciel pour tester des piles TCP/IP, pour découvrir des
+  politiques de firewalls, pour scanner les ports TCP de nombreuses manières
+  différentes, pour transférer les fichiers au travers de firewalls et
+  beaucoup d'autres choses. En utilisant hping vous pouvez même faire
+  beaucoup de choses qui ne concernent pas la sécurité. Par exemples vous
+  pouvez tester les performances réseau, vérifier si un système tourne,
+  vérifier si le champ TOS est géré, etc.
+
+__0002 : Qu'est ce que j'ai besoin de connaître de TCP/IP pour utiliser
+         hping ?
+
+  Si vous connaissez TCP/IP vous trouverez hping très utile, sinon vous
+  pouvez utiliser hping seulement pour faire des tests connus. Voir __000A
+  pour quelques exemples.
+
+__0003 : Premiers pas avec hping
+
+  La plus simple utilisation de hping est la suivante :
+
+	#hping host
+
+  Cette commande envoie un paquet TCP sans drapeau au port 0 du système
+  cible chaque seconde et montre les réponses du système. Par exemple :
+
+# hping www.debian.org
+ppp0 default routing interface selected (according to /proc)
+HPING www.debian.org (ppp0 209.81.8.242): NO FLAGS are set, 40 headers + 0 data bytes
+40 bytes from 209.81.8.242: flags=RA seq=0 ttl=243 id=63667 win=0 time=369.4 ms
+40 bytes from 209.81.8.242: flags=RA seq=1 ttl=243 id=63719 win=0 time=420.0 ms
+40 bytes from 209.81.8.242: flags=RA seq=2 ttl=243 id=63763 win=0 time=350.0 ms
+[Ctrl+C]
+--- www.debian.org hping statistic ---
+3 packets tramitted, 3 packets received, 0% packet loss
+
+  Comme vous pouvez le voir le système répond avec un paquet TCP avec les
+  drapeaux RST et ACK positionnés. Ainsi vous êtes capable d'effectuer un
+  'ping TCP', utile quand ICMP est filtré. Par défaut le port 0 est utilisé
+  parce qu'il serait étrange qu'il soit à l'état LISTEN (ndt : en écoute). 
+  Si nous envoyons un paquet TCP sans drapeau à un port à l'état LISTEN, de
+  nombreuses piles TCP/IP ne renverront pas de réponse. Ainsi nous sommes
+  capables de savoir si un port est dans l'état LISTEN. Par exemple :
+
+# hping www.debian.org -p 80
+ppp0 default routing interface selected (according to /proc)
+HPING www.debian.org (ppp0 209.81.8.242): NO FLAGS are set, 40 headers + 0 data bytes
+[Ctrl+C]
+--- www.debian.org hping statistic ---
+5 packets trasmitted, 0 packets received, 100% packet loss
+
+  Puisque le port 80 de www.debian.org est en mode LISTEN nous n'obtenons
+  aucune réponse.
+
+  Mais qu'arrive-t-il si nous essayons de 'hpinger' un port bloqué par un
+  firewall ? Cela dépend de la politique / configuration du firewall. 
+  Habituellement nous obtenons un paquet ICMP ou rien. Par exemple :
+
+# hping www.yahoo.com -p 79
+ppp0 default routing interface selected (according to /proc)
+HPING www.yahoo.com (ppp0 204.71.200.67): NO FLAGS are set, 40 headers + 0 data bytes
+ICMP Packet filtered from 206.132.254.41  (pos1-0-2488M.hr8.SNV.globalcenter.net)
+
+--- www.yahoo.com hping statistic ---
+14 packets tramitted, 0 packets received, 100% packet loss
+
+  Le firewall de yahoo ne permet pas de connexion sur le port 79, donc il
+  répond avec un paquet ICMP Packet filtered (ICMP unreachable code 13). 
+  Cependant il y a beaucoup de firewalls qui ignorent simplement le paquet. 
+  Par exemple :
+
+# hping www.microsoft.com -p 79
+ppp0 default routing interface selected (according to /proc)
+HPING www.microsoft.com (ppp0 207.46.130.150): NO FLAGS are set, 40 headers + 0 data bytes
+
+--- www.microsoft.com hping statistic ---
+4 packets tramitted, 0 packets received, 100% packet loss
+
+  Aucune réponse de microsoft. Est-ce que le port est bloqué ou en mode
+  LISTEN ? Découvrir cela est très simple. Nous essayons juste de mettre le
+  drapeau ACK au lieu d'envoyer un paquet TCP sans drapeau. Si le système
+  répond, peut-être que ce port est en mode LISTEN (mais il est possible
+  qu'il y ait une règle qui refuse les paquets TCP sans drapeau mais
+  autorise les paquets ACK).
+
+# hping www.microsoft.com -A -p 79
+ppp0 default routing interface selected (according to /proc)
+HPING www.microsoft.com (ppp0 207.46.130.149): A set, 40 headers + 0 data bytes
+
+--- www.microsoft.com hping statistic ---
+3 packets tramitted, 0 packets received, 100% packet loss
+
+  Toujours pas de réponse, ainsi ce port semble être filtré. Quoi qu'il en
+  soit, il est possible que microsoft utilise un firewall 'intelligent' qui
+  sait que pour me connecter je dois d'abord envoyer un paquet SYN.
+
+# hping www.microsoft.com -S -p 79
+ppp0 default routing interface selected (according to /proc)
+HPING www.microsoft.com (ppp0 207.46.130.149): S set, 40 headers + 0 data bytes
+
+--- www.microsoft.com hping statistic ---
+3 packets tramitted, 0 packets received, 100% packet loss
+
+  Ok.. il semble que le port 79 de microsoft est réellement filtré.
+  Pour clarification nous envoyons quelques paquets ACK au port 80 de
+  www.debian.org :
+
+# hping www.debian.org -p 80 -A
+ppp0 default routing interface selected (according to /proc)
+HPING www.debian.org (ppp0 209.81.8.242): A set, 40 headers + 0 data bytes
+40 bytes from 209.81.8.242: flags=R seq=0 ttl=243 id=5590 win=0 time=379.5 ms
+40 bytes from 209.81.8.242: flags=R seq=1 ttl=243 id=5638 win=0 time=370.0 ms
+40 bytes from 209.81.8.242: flags=R seq=2 ttl=243 id=5667 win=0 time=360.0 ms
+
+--- www.debian.org hping statistic ---
+3 packets tramitted, 3 packets received, 0% packet loss
+
+  Nous pouvons voir les réponses même si le port 80 est en mode LISTEN parce
+  qu'un port en mode LISTEN ne devrait pas répondre à des paquets TCP avec
+  seulement un drapeau NULL, FIN, Xmas, ou Ymas. ACK et RST sont deux
+  drapeaux TCP importants qui permettent de tester des ACL (ndt : listes de
+  contrôle d'accès) et de deviner le champ ip->id en ne laissant pas de
+  trace dans les journaux (généralement).
+
+__0004 : Le champ IP id et comment scanner des ports TCP en utilisant de
+         l'usurpation d'adresse.
+
+  Chaque paquet IP est identifié par un champ id de 16 bits. Grâce à ce
+  champ id les piles IP sont capables de gérer la fragmentation. De nombreux
+  OS traitent ip->id trivialement : incrémenter ce champ de 1 champ pour
+  chaque paquet envoyé. En utilisant ce champ id vous êtes au minimum
+  capable d'estimer le trafic et de scanner en usurpant l'adresse source.
+  OpenBSD >= 2.5 et beaucoup d'autres mettent en oeuvre un champ id
+  aléatoire non répétitif ainsi vous ne pouvez pas jouer avec le champ
+  ip->id. Le champ ip->id des systèmes Windows n'est pas positionné dans le
+  même ordre (ndt : dans le bon ordre), donc vous devez spécifier l'option
+  --winid ou -W si vous utilisez hping2 contre un système Windows.
+
+  N.B. : Vous êtes capable de scanner un système avec un champ ip->id
+         sûre/aléatoire parce que pour spoofer vos paquets vous avez besoin
+         d'un système tiers avec un champ id incrémental, mais vous n'avez
+         pas besoin que la cible de votre scan ait un champ id incrémental.
+
+  Comment estimer le trafic d'un système en utilisant le champ ip->id ?
+  C'est vraiment très simple :
+
+# hping www.yahoo.com -p 80 -A
+ppp0 default routing interface selected (according to /proc)
+HPING www.yahoo.com (ppp0 204.71.200.74): A set, 40 headers + 0 data bytes
+40 bytes from 204.71.200.74: flags=R seq=0 ttl=53 id=29607 win=0 rtt=329.4 ms
+40 bytes from 204.71.200.74: flags=R seq=1 ttl=53 id=31549 win=0 rtt=390.0 ms
+40 bytes from 204.71.200.74: flags=R seq=2 ttl=53 id=33432 win=0 rtt=390.0 ms
+40 bytes from 204.71.200.74: flags=R seq=3 ttl=53 id=35368 win=0 rtt=380.0 ms
+40 bytes from 204.71.200.74: flags=R seq=4 ttl=53 id=37335 win=0 rtt=390.0 ms
+40 bytes from 204.71.200.74: flags=R seq=5 ttl=53 id=39157 win=0 rtt=380.0 ms
+40 bytes from 204.71.200.74: flags=R seq=6 ttl=53 id=41118 win=0 rtt=370.0 ms
+40 bytes from 204.71.200.74: flags=R seq=7 ttl=53 id=43330 win=0 rtt=390.0 ms
+
+--- www.yahoo.com hping statistic ---
+8 packets tramitted, 8 packets received, 0% packet loss
+round-trip min/avg/max = 329.4/377.4/390.0 ms
+
+  Comme vous pouvez le voir le champ id augmente. Le paquet avec le numéro
+  de séquence 0 possède un champ id égal à 29607, le numéro 1 à 31549, ainsi
+  le système www.yahoo.com a envoyé 31549-29607 = 1942 paquets en environ
+  une seconde. En utilisant l'option -r ou --relid, hping affiche le delta
+  entre les champs id des deux derniers paquets reçus.
+
+# hping www.yahoo.com -P 80 -A -r
+ppp0 default routing interface selected (according to /proc)
+HPING www.yahoo.com (ppp0 204.71.200.68): A set, 40 headers + 0 data bytes
+40 bytes from 204.71.200.68: flags=R seq=0 ttl=53 id=65179 win=0 rtt=327.1 ms
+40 bytes from 204.71.200.68: flags=R seq=1 ttl=53 id=+1936 win=0 rtt=360.0 ms
+40 bytes from 204.71.200.68: flags=R seq=2 ttl=53 id=+1880 win=0 rtt=340.0 ms
+40 bytes from 204.71.200.68: flags=R seq=3 ttl=53 id=+1993 win=0 rtt=330.0 ms
+40 bytes from 204.71.200.68: flags=R seq=4 ttl=53 id=+1871 win=0 rtt=350.0 ms
+40 bytes from 204.71.200.68: flags=R seq=5 ttl=53 id=+1932 win=0 rtt=340.0 ms
+40 bytes from 204.71.200.68: flags=R seq=6 ttl=53 id=+1776 win=0 rtt=330.0 ms
+40 bytes from 204.71.200.68: flags=R seq=7 ttl=53 id=+1749 win=0 rtt=320.0 ms
+40 bytes from 204.71.200.68: flags=R seq=8 ttl=53 id=+1888 win=0 rtt=340.0 ms
+40 bytes from 204.71.200.68: flags=R seq=9 ttl=53 id=+1907 win=0 rtt=330.0 ms
+
+--- www.yahoo.com hping statistic ---
+10 packets tramitted, 10 packets received, 0% packet loss
+round-trip min/avg/max = 320.0/336.7/360.0 ms
+
+  Évidemment si on vérifie le champ id toutes les demi-secondes plutôt que
+  toutes les secondes, l'incrément sera diminué de moitié.
+
+# hping www.yahoo.com -P 80 -A -r -i u 500000
+ppp0 default routing interface selected (according to /proc)
+HPING www.yahoo.com (ppp0 204.71.200.68): A set, 40 headers + 0 data bytes
+40 bytes from 204.71.200.68: flags=R seq=0 ttl=53 id=35713 win=0 rtt=327.0 ms
+40 bytes from 204.71.200.68: flags=R seq=1 ttl=53 id=+806 win=0 rtt=310.0 ms
+40 bytes from 204.71.200.68: flags=R seq=2 ttl=53 id=+992 win=0 rtt=320.0 ms
+40 bytes from 204.71.200.68: flags=R seq=3 ttl=53 id=+936 win=0 rtt=330.0 ms
+40 bytes from 204.71.200.68: flags=R seq=4 ttl=53 id=+987 win=0 rtt=310.0 ms
+40 bytes from 204.71.200.68: flags=R seq=5 ttl=53 id=+952 win=0 rtt=320.0 ms
+40 bytes from 204.71.200.68: flags=R seq=6 ttl=53 id=+918 win=0 rtt=330.0 ms
+40 bytes from 204.71.200.68: flags=R seq=7 ttl=53 id=+809 win=0 rtt=320.0 ms
+40 bytes from 204.71.200.68: flags=R seq=8 ttl=53 id=+881 win=0 rtt=320.0 ms
+
+--- www.yahoo.com hping statistic ---
+9 packets tramitted, 9 packets received, 0% packet loss
+round-trip min/avg/max = 310.0/320.8/330.0 ms
+
+  N.B. Attention, en utilisant ip->id vous n'êtes capable que d'estimer *le
+       nombre de paquets envoyés/unité de temps*. Vous ne pouvez pas
+       toujours comparer différents systèmes. Le champ ip->id concerne
+       toutes les interfaces d'un système et par exemple si un système
+       utilise de la traduction d'adresse ou redirige les connexions TCP
+       vers un autre système (par exemple un firewall utilisé pour cacher un
+       serveur web) l'incrément du champ ip->id peut résulter en de fausses
+       augmentations.
+
+  En 'hpingant' les boites windows sans utiliser l'option --winid vous
+  verrez que les incrément sont des multiples de 256 à cause d'un ordre des
+  octets inversé. Ceci peut être réellement utile pour déterminer le type
+  d'OS.
+
+#hping win95 -r
+HPING win95 (eth0 192.168.4.41): NO FLAGS are set, 40 headers + 0 data bytes
+46 bytes from 192.168.4.41: flags=RA seq=0 ttl=128 id=47371 win=0 rtt=0.5 ms
+46 bytes from 192.168.4.41: flags=RA seq=1 ttl=128 id=+256 win=0 rtt=0.5 ms
+46 bytes from 192.168.4.41: flags=RA seq=2 ttl=128 id=+256 win=0 rtt=0.6 ms
+46 bytes from 192.168.4.41: flags=RA seq=3 ttl=128 id=+256 win=0 rtt=0.5 ms
+
+--- win95 hping statistic ---
+4 packets tramitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.5/0.5/0.6 ms
+
+  Les systèmes windows sont "marqués", ainsi pour découvrir si un système
+  est un Windows vous avez juste besoin d'envoyer quelques paquets.
+
+Comment effectuer des scans SYN spoofés en utilisant un champ id incrémental
+? Ce qui suit est le message original (ndt : du moins sa traduction) à
+bugtraq à propos de la méthode de scan usurpée/indirecte/passive, dessous
+j'essayerai d'expliquer les détails et comment cela est possible même avec
+UDP avec quelques restrictions.
+
+---- le postage à bugtraq à propos des scans usurpés ----
+
+  Salut,
+
+        J'ai découvert une nouvelle méthode de scan de ports TCP.  Au
+        contraire de toutes les autres elle vous permet de scanner en
+        utilisant des paquets usurpés (ndt : dont l'adresse IP source est
+        usurpée), ainsi les systèmes scannés ne peuvent pas voir votre
+        adresse réelle. Afin de réaliser cela j'utilise trois particularités
+        bien connues des mises en oeuvre TCP/IP de la plupart des OS.
+
+          (1) * les systèmes répondent SYN|ACK à SYN si le port TCP cible
+            est ouvert, et RST|ACK si le port TCP cible est fermé.
+
+          (2) * Vous pouvez connaître le nombre de paquets que les systèmes
+            envoient en utilisant le champ id de l'entête IP. Voir mes
+            précédents postages 'à propos de l'entête IP' dans cette mailing
+            liste.
+
+          (3) * les systèmes répondent RST à SYN|ACK, ne répondent rien à
+            RST.
+
+
+        Les joueurs:
+
+          système A - le système malfaisant, l'attaquant.
+          système B - le système silencieux.
+          système C - le système victime.
+
+        A est votre système.
+        B est un système particulier : il ne doit envoyer aucun paquet
+         pendant que vous scannez C. Il y a énormément de systèmes à 'trafic
+         nul' sur Internet, spécialement la nuit :)
+        C est la victime, il doit être vulnérable aux scans SYN.
+
+        J'ai appelé cette méthode de scan 'scan du système muet' (ndt :
+        l'autre traduction de 'dumb' est bête) en référence aux
+        caractéristiques du système B.
+
+
+        Comment elle fonctionne :
+
+        Le système A surveille le nombre de paquets sortants depuis B en
+        utilisant le champ id de l'entête IP. Vous pouvez faire ceci
+        simplement en utilisant hping :
+
+#hping B -r
+HPING B (eth0 xxx.yyy.zzz.jjj): no flags are set, 40 data bytes
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=0 ttl=64 id=41660 win=0 time=1.2 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=1 ttl=64 id=+1 win=0 time=75 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=2 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=3 ttl=64 id=+1 win=0 time=90 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=4 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=5 ttl=64 id=+1 win=0 time=87 ms
+-cut-
+..
+.
+
+        Comme vous pouvez le voir, les incréments du champ id sont toujours
+        de 1. Ainsi ce système a la caractéristique requise pour jouer le
+        rôle de B.
+
+        Maintenant le système A envoie des paquets SYN au port X de C en
+        usurpant l'adresse source de B.
+        (avec hping => 0.67 c'est très facile, http://www.kyuzz.org/antirez)
+        si le port X de C est ouvert, le système C enverra SYN|ACK à B (oui,
+        le système C ne sait pas que le véritable expéditeur est A). Dans ce
+        cas le système B répond au SYN|ACK avec un RST.
+        Si nous envoyons au système C quelques paquets SYN il répondra à B
+        quelques paquet SYN|ACK, ainsi B répondra à C quelques RST... ainsi
+        nous verrons que le système B est en train d'envoyer des paquets !
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=17 ttl=64 id=+1 win=0 time=96 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=18 ttl=64 id=+1 win=0 time=80 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=19 ttl=64 id=+2 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=20 ttl=64 id=+3 win=0 time=94 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=21 ttl=64 id=+1 win=0 time=92 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=22 ttl=64 id=+2 win=0 time=82 ms
+-cut-
+..
+.
+
+        Le port est ouvert !
+
+        Par contre, si le port X de C est fermé alors en envoyant à C
+        quelques paquets SYN avec l'adresse usurpée de B, il répondra avec
+        des paquets RST à B, et B ne répondra pas (voir 3). Ainsi nous
+        verrons que le système B n'est en train d'envoyer aucun paquet :
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=52 ttl=64 id=+1 win=0 time=85 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=53 ttl=64 id=+1 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=54 ttl=64 id=+1 win=0 time=93 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=55 ttl=64 id=+1 win=0 time=74 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=56 ttl=64 id=+1 win=0 time=95 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=57 ttl=64 id=+1 win=0 time=81 ms
+-cut-
+..
+.
+
+        Le port est fermé.
+
+        Tout ceci peut paraître compliqué à réaliser, mais utiliser deux
+        sessions de hping dans des consoles virtuelles Linux ou sous X rend
+        cela plus simple.
+        La première session surveille le système B : hping B -r
+        La seconde session envoie des paquets SYN spoofés : hping C -a B -S
+
+        Désolé si mon anglais n'est pas clair.
+        Cependant ce postage n'est pas adéquat pour décrire exhaustivement
+        cette méthode de scan, ainsi je vais écrire un article à ce sujet,
+        en particulier comment mettre en oeuvre ceci dans un scanner de
+        ports (i.e.  nmap), et à propos des caractéristiques des joueurs et
+        des OS utilisés.
+
+bonne nouvelle année,
+antirez
+
+---- EOF ----
+
+  Comme vous pouvez le voir un scan usurpé est trivial à réaliser,
+  particulièrement en utilisant hping2 vous êtes capable de spécifier un
+  intervalle en micro secondes (-i uX) ainsi vous n'avez pas besoin que le
+  système B soit un système totalement passif. Vous pouvez lire l'incrément
+  du champ id une fois toutes les secondes en envoyant 10 paquets SYN par
+  seconde. Si vous envoyez un nombre adéquat de paquets SYN par seconde,
+  l'incrément du champ id attendu est si important que vous êtes à même de
+  voir si le port est ouvert ou fermé même si le système B envoie d'autres
+  paquets. Exemple :
+
+# hping awake.host.org -p 80 -A -r
+ppp0 default routing interface selected (according to /proc)
+HPING server.alicom.com (ppp0 111.222.333.44): A set, 40 headers + 0 data bytes
+40 bytes from 111.222.333.44: flags=R seq=0 ttl=249 id=47323 win=0 rtt=239.7 ms
+40 bytes from 111.222.333.44: flags=R seq=1 ttl=249 id=+6 win=0 rtt=630.0 ms
+40 bytes from 111.222.333.44: flags=R seq=2 ttl=249 id=+6 win=0 rtt=280.0 ms
+40 bytes from 111.222.333.44: flags=R seq=3 ttl=249 id=+8 win=0 rtt=340.0 ms
+40 bytes from 111.222.333.44: flags=R seq=4 ttl=249 id=+5 win=0 rtt=440.0 ms
+40 bytes from 111.222.333.44: flags=R seq=5 ttl=249 id=+5 win=0 rtt=410.0 ms
+40 bytes from 111.222.333.44: flags=R seq=6 ttl=249 id=+8 win=0 rtt=1509.9 ms
+40 bytes from 111.222.333.44: flags=R seq=7 ttl=249 id=+4 win=0 rtt=1460.0 ms
+40 bytes from 111.222.333.44: flags=R seq=8 ttl=249 id=+7 win=0 rtt=770.0 ms
+40 bytes from 111.222.333.44: flags=R seq=9 ttl=249 id=+5 win=0 rtt=230.0 ms
+...
+
+  comme vous pouvez le voir, ce système n'est pas inactif, il envoie environ
+  6 paquets chaque seconde. Maintenant scannez le port 80 de www.yahoo.com
+  pour voir s'il est ouvert :
+
+root.1# hping -a server.alicom.com -S -p 80 -i u10000 www.yahoo.com
+ppp0 default routing interface selected (according to /proc)
+HPING www.yahoo.com (ppp0 204.71.200.74): S set, 40 headers + 0 data bytes
+
+[attendre quelques secondes et presser CTRL+C]
+
+--- www.yahoo.com hping statistic ---
+130 packets tramitted, 0 packets received, 100% packet loss
+round-trip min/avg/max = 0.0/0.0/0.0 ms
+
+  En observant la sortie de 'hping awake.host.org -p 80 -A -r' il est
+  simple de comprendre que le port 80 de www.yahoo.com est ouvert :
+
+40 bytes from 111.222.333.44: flags=R seq=59 ttl=249 id=+16 win=0 rtt=380.0 ms
+40 bytes from 111.222.333.44: flags=R seq=60 ttl=249 id=+75 win=0 rtt=850.0 ms
+40 bytes from 111.222.333.44: flags=R seq=61 ttl=249 id=+12 win=0 rtt=1050.0 ms
+40 bytes from 111.222.333.44: flags=R seq=62 ttl=249 id=+1 win=0 rtt=450.0 ms
+40 bytes from 111.222.333.44: flags=R seq=63 ttl=249 id=+27 win=0 rtt=230.0 ms
+40 bytes from 111.222.333.44: flags=R seq=64 ttl=249 id=+11 win=0 rtt=850.0 ms
+
+  notez que 16+75+12+27+11+1-6 = 136 et que nous avons envoyé 130 paquets. 
+  Ainsi il est très probable que les incréments soient produits par nos
+  paquets.
+
+  Conseil : en utilisant un système inactif pour réaliser un scan usurpé il
+            est utile de ne montrer que les réponses qui montrent un
+            incrément différent de 1. Essayez
+            `hping host -r | grep -v "id=+1"'

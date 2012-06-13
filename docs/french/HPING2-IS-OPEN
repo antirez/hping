@@ -1,0 +1,14 @@
+Je voudrais dire deux mots à propos du modèle de développement de hping2.
+Hping2 est totalement ouvert à toutes nouvelles contributions et idées, si
+vous avez même la plus petite idée afin de rendre hping meilleur ou si vous
+faites un patch alors envoyez moi un courrier électronique. Tous les
+patches, s'ils ne cassent pas l'ancien code et ne sont pas totalement
+inutiles, seront inclus. Je connais nombre de projets sous licence GPL mais
+qui sont dans un sens "fermés" puisque chaque nouveau patch est considéré
+bouffi ou alors le seul code possible est celui de l'auteur principal : CE
+N'EST PAS LE CAS! Également chacune des plus petites contributions
+documentaires seront ajoutées à hping2, vous pouvez juste créer un ficher
+texte qui expose comment réaliser une tâche avec hping, il sera inclus dans
+le répertoire 'docs'.
+
+antirez

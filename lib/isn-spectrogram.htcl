@@ -1,0 +1,132 @@
+# isn-spectrogram.htcl -- show the ISN increments "spectrogram".
+# Copyright(C) 2003 Salvatore Sanfilippo.
+#
+# All rights reserved.
+#
+# Here the idea is very simple, in operating systems implemeting
+# ISN as random increments, it is useless to analyze the whole
+# sequence number, because the random part is just the increment.
+# Morover, some weaknes isn't about correlation between previous
+# and successive increments, but just about increments don't show
+# a good distribution. So the idea is to display a spectrogram
+# of the increments distribution instead of the more complex to read
+# 3D attractors (See [1]). This way is possible to see at least some of
+# the common vulnerabilties you can discover with 3D attractors,
+# but it is much simpler to guess how hard is to exploit the system
+# just from the picture.
+#
+# [1] http://razor.bindview.com/publish/papers/tcpseq.html
+#
+# Please if you make this script better write me back the
+# changes. (antirez@invece.org).
+#
+# The script requires Tk to run.
+
+package require Tk
+source hpingstdlib.htcl
+
+if {$argc != 3} {
+    puts stderr "Usage: isn-spectrogram <host> <scale> <open-tcp-port>"
+    puts stderr "Example: isn-spectrogram www.example.com 100000 80"
+    exit
+}
+
+set bgcolor {#000000}
+wm title . {hping3 -- attractors}
+set w .main
+frame $w
+pack $w -side top
+. config -background $bgcolor
+$w config -background $bgcolor
+
+# canvas
+set xres 800
+set yres 800
+canvas $w.can -width $xres -height $yres
+$w.can config -background $bgcolor
+pack $w.can -fill both -expand true
+
+# globals
+foreach {hostname div dport} $argv break
+set sport 1
+#set dport 80
+set target [hping resolve $hostname]
+set targetif [outifname $target]
+set myip [hping outifa $target]
+set isnqueue {}
+set relative_attractor 1
+set lastisn 0
+#set div 10000000
+
+hping setfilter $targetif "tcp and src host $target"
+
+
+$w.can create rectangle 40 450 139 450 -fill white -width 0
+$w.can create text 90 470 -fill white -text [expr $div*100]
+
+proc sendsyn {} {
+    global sport dport myip target
+    append syn "ip(saddr=$myip,daddr=$target,ttl=255)+"
+    append syn "tcp(sport=$sport,dport=$dport,flags=s)"
+    hping send $syn
+    incr sport
+    after 1 sendsyn
+}
+
+proc recvsynack {} {
+    global lastisn relative_attractor
+
+    set packets [hping recv eth0 0 0]
+    foreach p $packets {
+	if {![hping hasfield tcp flags $p]} continue
+	set isn [hping getfield tcp seq $p]
+	if {$relative_attractor} {
+		set tisn [expr abs($isn-$lastisn)]
+		set lastisn $isn
+		set isn $tisn
+	}
+	#puts "ISN: $isn"
+	displaypoint $isn
+    }
+    after 10 recvsynack
+}
+
+proc displaypoint isn {
+    global w xres yres pastcol div
+
+    set isn [expr $isn/$div]
+    set y 300
+    set x $isn
+    puts "$x $y"
+    if {[haskey pastcol $x.$y]} {
+	set graylevel [incr pastcol($x.$y) 10]
+    } else {
+	set pastcol($x.$y) 0
+	set graylevel 0
+    }
+    if {$graylevel >= 256*3} {
+	set graylevel [expr (256*3)-1]
+    }
+    if {$graylevel <= 255} {
+	set b $graylevel
+	set g 0
+	set r 0
+    } elseif {$graylevel <= 511} {
+	set b 0
+	set g [expr $graylevel - 256]
+	set r 255
+    } elseif {$graylevel <= 767} {
+	set b 255
+	set g 255
+	set r [expr $graylevel - 512]
+    }
+    set color [format "#%02X%02X%02X" $r $g $b]
+    $w.can create rectangle $x $y [expr $x+1] [expr $y+100] -fill $color -width 0
+}
+
+after 1 sendsyn
+after 1 recvsynack
+
+vwait forever
+
+# vim: filetype=tcl softtabstop=4

@@ -1,0 +1,326 @@
+#
+# A simple NAT toy with alteration filters.
+#
+
+package require profiler
+
+::profiler::init
+
+################################### CONFIG #####################################
+
+source "hpingstdlib.htcl"
+set target [hping resolve 192.168.0.3]
+set myip [hping outifa $target]
+set fakeip 192.168.10.100
+set outlist {}
+set inlist {}
+
+if {1} {
+set input_modules {
+	{mod_dup .2}
+	{mod_loss .2}
+	{mod_print "input: "}
+	{mod_send 100}
+	{mod_zap}
+}
+
+set output_modules {
+	{mod_dup .0}
+	{mod_loss .0}
+	{mod_corrupt_data 1 .1}
+	{mod_print "output: "}
+	{mod_send 0}
+	{mod_zap}
+}
+}
+
+if {0} {
+set output_modules {
+	{mod_shuffle 5 500 input}
+	{mod_send 0}
+	{mod_zap}
+}
+set input_modules {
+	{mod_send 0}
+	{mod_zap}
+}
+}
+
+if {0} {
+set output_modules {
+	{mod_tcp_daytona_dupack 50}
+	{mod_send 0}
+	{mod_zap}
+}
+set input_modules {
+	{mod_send 0}
+	{mod_zap}
+}
+}
+
+if {0} {
+set output_modules {
+	{mod_tcp_frag 1}
+	{mod_send 0}
+	{mod_zap}
+}
+set input_modules {
+	{mod_send 0}
+	{mod_zap}
+}
+}
+
+
+#################################### CORE ######################################
+
+proc donat {} {
+	global target myip fakeip outlist inlist
+
+	set packets [hping recv -hexdata eth0 0 10]
+	foreach p $packets {
+		DelApdField ip cksum p
+		DelApdField tcp cksum p
+		DelApdField tcp off p
+		#puts "[GetIpSaddr $p] -> [GetIpDaddr $p]"
+		if {[GetIpSaddr $p] == $myip && [GetIpDaddr $p] == $fakeip} {
+			SetApdField ip saddr $fakeip p
+			SetApdField ip daddr $target p
+			lappend outlist $p
+			puts -nonewline O; flush stdout
+		} elseif {[GetIpSaddr $p] == $target && [GetIpDaddr $p] == $fakeip} {
+			SetApdField ip saddr $fakeip p
+			SetApdField ip daddr $myip p
+			lappend inlist $p
+			puts -nonewline I; flush stdout
+		}
+	}
+	after idle donat
+}
+
+proc runmodules {} {
+	global outlist inlist input_modules output_modules
+
+	if {[llength $inlist]} {
+		foreach m $input_modules {
+			lappend m $inlist
+			set inlist [eval $m]
+		}
+	}
+	if {[llength $outlist]} {
+		foreach m $output_modules {
+			lappend m $outlist
+			set outlist [eval $m]
+		}
+	}
+	after idle runmodules
+}
+
+#################################### MODULES ###################################
+
+### DUP ###
+proc mod_dup {rate packets} {
+	foreach p $packets {
+		lappend l $p
+		if {rand() < $rate} {
+			puts -nonewline D; flush stdout
+			lappend l $p
+		}
+	}
+	return $l
+}
+
+### LOSS ###
+proc mod_loss {rate packets} {
+	set l {}
+	foreach p $packets {
+		if {rand() >= $rate} {
+			lappend l $p
+		} else {
+			puts -nonewline L; flush stdout
+		}
+	}
+	return $l
+}
+
+### SEND ###
+proc mod_send {maxdelay packets} {
+	set len [llength $packets]
+	for {set i [expr $len-1]} {$i >= 0} {incr i -1} {
+		set p [lindex $packets $i]
+		puts -nonewline W; flush stdout
+		if {$maxdelay} {
+			set ms [expr int(rand()*($maxdelay+1))]
+			after $ms "hping send $p"
+		} else {
+			hping send $p
+		}
+	}
+	return $packets
+}
+
+### ZAP ###
+proc mod_zap packets {
+	return {}
+}
+
+### PRINT ###
+proc mod_print {tag packets} {
+	foreach p $packets {
+		puts "$tag $p"
+	}
+	return $packets
+}
+
+### CORRUPT_DATA ###
+proc mod_corrupt_data {num rate packets} {
+#	return $packets
+	foreach p $packets {
+		set mod 0
+		set data [GetApdField data hex $p]
+		set len [string length $data]
+		if {$len} {
+			for {set i 0} {$i < $num} {incr i} {
+				if {rand() < $rate} {
+					set byte [format "%02x" [expr int(rand()*256)]]
+					set x [expr $len/2]
+					set offset [expr int(rand()*$x)]
+					set data [string replace $data [expr $offset*2] [expr ($offset*2)+1] $byte]
+				}
+			}
+			SetApdField data hex $data p
+		}
+		lappend l $p
+	}
+	return $l
+}
+
+### SHUFFLE AND HELPER FUNCTIONS ###
+proc K { x y } { set x }
+
+proc shuffle { list } {
+    set n [llength $list]
+    while {$n > 0} {
+        set j [expr {int(rand()*$n)}]
+        lappend slist [lindex $list $j]
+        incr n -1
+        set temp [lindex $list $n]
+        set list [lreplace [K $list [set list {}]] $j $j $temp]
+    }
+    return $slist
+}
+
+proc shuffle_flush {tag packets} {
+	global shuffle_list_$tag shuffle_startms_$tag pending_flush_$tag
+
+	unset shuffle_list_$tag
+	unset shuffle_startms_$tag
+	set pending_flush_$tag 0
+	mod_send 0 $packets
+}
+
+proc mod_shuffle {count timeout tag packets} {
+	global shuffle_list_$tag shuffle_startms_$tag pending_flush_$tag
+	global pending_flush_id_$tag
+
+	if {! [info exists shuffle_list_$tag]} {
+		set shuffle_list_$tag {}
+		set shuffle_startms_$tag [clock clicks -milliseconds]
+		set pending_flush_$tag 0
+	}
+	if {[info exists pending_flush_$tag] && [set pending_flush_$tag]} {
+		after cancel [set pending_flush_id_$tag]
+		set pending_flush_$tag 0
+	}
+	set shuffle_list_$tag [concat [set shuffle_list_$tag] $packets]
+	set len [llength [set shuffle_list_$tag]]
+	if {$len >= $count} {
+		set x [shuffle [set shuffle_list_$tag]]
+		unset shuffle_list_$tag
+		unset shuffle_startms_$tag
+		return $x
+	} elseif {$len} {
+		set elapsed [expr [clock clicks -milliseconds] - [set shuffle_startms_$tag]]
+		set flush_delay [expr $timeout - $elapsed]
+		if {$flush_delay <= 0} {set flush_delay 1}
+		set pending_flush_id_$tag [after $flush_delay [list shuffle_flush $tag [set shuffle_list_$tag]]]
+		set pending_flush_$tag 1
+		return {}
+	}
+	return {}
+}
+
+### DUP ACK ###
+proc mod_tcp_daytona_dupack {count packets} {
+	foreach p $packets {
+		if {[string match [hping getfield tcp flags $p] "a"] && [string length [hping getfield data hex $p]] == 0} {
+			puts -nonewline .DUPACK.; flush stdout
+			for {set i 0} {$i < $count} {incr i} {
+				lappend l $p
+			}
+		} else {
+			lappend l $p
+		}
+	}
+	return $l
+}
+
+### TCP FRAG ###
+proc mod_tcp_frag {size packets} {
+	foreach p $packets {
+		if {[GetIpProto $p] != 6} {
+			lappend temp $p
+			continue
+		}
+		set data [GetDataHex $p]
+		if {[llength $data] == 0} {
+			lappend temp $p
+			continue
+		}
+		set datalen [string length $data]
+		if {$datalen <= $size} {
+			lappend temp $p
+			continue
+		}
+		set seq [GetTcpSeq $p]
+		set size [expr {$size*2}]
+		set xtemp {}
+		while {$datalen} {
+			set l [if {$datalen >= $size} {set size} {set datalen}]
+			set load [string range $data 0 [expr {$l-1}]]
+			set data [string range $data $l end]
+			incr datalen -$l
+			set p [hping setfield tcp seq $seq $p]
+			set p [hping setfield data hex $load $p]
+			set p [hping delfield ip totlen $p]
+			set p [hping delfield ip cksum $p]
+			set p [hping delfield tcp cksum $p]
+			set p [hping delfield tcp off $p]
+			puts "$seq $load"
+			lappend xtemp $p
+			incr seq [expr {$l/2}]
+		}
+		set xtl [expr {[llength $xtemp]-1}]
+		for {set j $xtl} {$j >= 0} {incr j -1} {
+			lappend temp [lindex $xtemp $j]
+		}
+	}
+	return $temp
+}
+
+# vim: filetype=tcl
+
+### PROFILER HELPER ###
+proc prof {} {
+	puts [::profiler::print]
+	puts [::profiler::sortFunctions exclusiveRuntime]
+	after 1000 prof
+}
+
+################################# EVENT LOOP ###################################
+
+after 1 donat
+after 1 runmodules
+#after 1 prof
+vwait forever
+
+# vim: filetype=tcl

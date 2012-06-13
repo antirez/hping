@@ -1,0 +1,45 @@
+# Try to discover hosts's uptime in a passive-fashion (i.e. locking
+# at the traffic). Maybe it's a bit buggy, but just an exaple.
+
+source "hpingstdlib.htcl"
+
+while {1} {
+	set packets [hping recv ppp0 -1]
+	set p [lindex $packets 0]
+	set srcaddr [GetIpSaddr $p]
+	if {[string length [array names ignore $srcaddr]]} {
+		continue
+	}
+	set tsval [GetTcpTimestampVal $p]
+	if {$tsval != {}} {
+		puts "$srcaddr: $tsval"
+		#puts "$srcaddr: $tsval ([clock clicks -milliseconds])"
+		if {[string length [array names lastval $srcaddr]]} {
+			set xms [expr [clock clicks -milliseconds] - $lastms($srcaddr)]
+			if {$xms >= 1000} {
+				set xval [expr abs($tsval-$lastval($srcaddr))]
+				set hz [expr ($xval/$xms.0)*1000]
+				set hz [expr round($hz)]
+                                puts $hz
+				#puts "$srcaddr: XVAL=$xval XMS=$xms HZ=$hz"
+				#set lastval($srcaddr) $tsval
+				#set lastms($srcaddr) [clock clicks -milliseconds]
+				if {($hz%10) == 0 && $hz != 0} {
+					set upseconds [expr $tsval / $hz]
+					set days [expr $upseconds/(3600*24)]
+					set upseconds [expr $upseconds%(3600*24)]
+					set hours [expr $upseconds/3600]
+					set upseconds [expr $upseconds % 3600]
+					set minutes [expr $upseconds/60]
+					set upseconds [expr $upseconds % 60]
+					set seconds $upseconds
+					puts "[hping resolve -ptr $srcaddr] ($srcaddr) UPTIME=$days days, $hours hours, $minutes minutes, $seconds seconds"
+					set ignore($srcaddr) yes
+				}
+			}
+		} else {
+			set lastval($srcaddr) $tsval
+			set lastms($srcaddr) [clock clicks -milliseconds]
+		}
+	}
+}

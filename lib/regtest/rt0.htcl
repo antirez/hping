@@ -1,0 +1,13 @@
+# SIGSEGV due to ipopt compilation bug: the padding code didn't set realloc()
+# result in layer->l_data field. Fixed.
+
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.nop+ip.nop+ip.nop+ip.sec+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.nop+ip.nop+ip.nop+ip.sec+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.nop+ip.nop+ip.nop+ip.sec+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.nop+ip.sec+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.sec+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.sec+ip.nop+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.sec+ip.nop+ip.eol+ip.nop+ip.eol+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.sec+ip.nop+ip.eol+ip.nop+ip.eol+ip.ts+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.sec+ip.nop+ip.nop+ip.sec+icmp}
+hping send {ip(saddr=192.168.1.6,daddr=192.168.1.7)+ip.nop+ip.sec+ip.nop+ip.eol+ip.nop+ip.eol+ip.sec+icmp}

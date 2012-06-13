@@ -1,0 +1,35 @@
+Posté sur la mailing liste bugtraq (20 Nov 1999) :
+
+---
+Salut,
+
+quelques petites nouvelles idées à propos des problèmes du champ IP ID :
+
+Le premier est à propos du filtrage IP Linux : puisqu'il augmente le
+compteur global du champ IP ID même si un paquet sortant sera filtré nous
+sommes capables, par exemple, de scanner des ports UDP même si la sortie de
+paquets ICMP de type 3 (ndt : port non accessible) est DENY, et en général
+il est possible de savoir quand la pile TCP/IP répond à un paquet même si la
+réponse est jetée.
+Je pense (mais non testé) que ceci est vrai pour la plupart des firewalls.
+
+Le second problème concerne la capacité à découvrir les règles de filtrage.
+Par exemple il est trivial de connaître si un système A filtre les paquets
+depuis l'adresse IP X.Y.Z.W en contrôlant l'augmentation du champ IP ID du
+système A ou du système avec l'adresse X.Y.Z.W (ceci change si nous sommes
+intéressés par la connaissance des règles d'entrée ou de sortie) et en
+envoyant les paquets qui supposent une réponse. Également ceci est apparenté
+avec la capacité de scanner les ports d'un système qui jette tous les
+paquets avec une source différente de systeme.de-confiance.com. Il y a
+d'autres choses comme ceci mais elles sont seulement différentes facettes du
+même concept.
+
+Quelques personnes pensent que ce type d'attaques ne sont pas des attaques
+du "monde réel", je suis fortement intéressé de savoir quelle est l'opinion
+des lecteurs de bugtraq (à mon opinion ce type d'attaques est faisable et
+utile pour un attaquant. Par exemple la capacité de scanner les ports avec
+seulement des paquets spoofés (ndt : avec l'adresse source usurpée) et la
+capacité de deviner le trafic du système distant sont grandement réels).
+
+ciao,
+antirez

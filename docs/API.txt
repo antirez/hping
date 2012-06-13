@@ -1,0 +1,478 @@
+The hping API
+
+Copyright (C) 2003 Salvatore Sanfilippo
+All rights reserved.
+
+--------------------------------------------------------------------------------
+
+NOTE: check http://wiki.hping.org for more information and updated
+      version of this document.
+
+OVERVIEW
+
+Hping uses the Tcl language as scripting language to write networking
+and security related applications, test suites, and software prototypes.
+To run hping in scripting mode just run it without arguments.
+
+# hping
+
+It will display a prompt, and will accept commands from the standard
+input. Here you can write Tcl commands, and use the embedded
+hping command to manipulate, send and receive packets, set filters,
+read the interface list and so on.
+
+To execute an hping script, call the hping program with "exec"
+as first argument followed by the name of the script and
+the arguments.
+
+# hping exec hping.htcl www.hping.org
+
+The goal of this document is to describe the API exported by hping
+to the Tcl language. This document aims to be informative, but will
+not cover all the aspects of the API usage: the experienced user
+should be able to fully exploit the hping capabilities just reading
+this document and the examples under the 'lib' directory.
+
+Note that the API is not yet complete: this document only covers the
+part already implemented in the current CVS version of hping3.
+
+Also note that this document currently does NOT cover the hping standard
+library, that is an higher level API build on top of the low-level API
+(for low-level API I mean what's described in this document).
+
+The plan is to start a Wiki to document hping3 in a collaborative way.
+
+--------------------------------------------------------------------------------
+
+API BASICS
+
+The main idea of the hping API is to export a single command for every
+'section' of the facilities provided by hping.
+
+The most important command exported is 'hping', this command
+expects a subcommand that specify the operation to perform. The
+following subcommands are currently available:
+
+resolve
+send
+sendraw
+recv
+recvraw
+iflist
+outifa
+getfield
+hasfield
+setfield
+delfield
+checksum
+
+Most are to receive, send, and manage packets, and in general all the
+subcommands of the hping command are about networking.
+
+--------------------------------------------------------------------------------
+
+HPING SUBCOMMANDS
+
+  hping resolve <hostname>
+
+The resolve subcommand translate an host name in its IPv4 address
+using the DNS system. It is basically a gethostname() wrapper, that
+just returns its input if <hostname> is already an IP address.
+
+Example:
+
+hping3.0.0-alpha> hping resolve www.hping.org
+192.70.106.166
+
+--
+
+#######################################################
+  hping recv ?-hexdata? <interface> ?timeout? ?count?
+#######################################################
+
+Receive packets as a Tcl list in the APD format. <interface> is
+the interface from wich to read packets, ?timeout? is an optional
+argument to set a timeout value in milliseconds, with the
+exception that a zero timeout means to return as soon as possible
+the packets that was already in queue when the recv subcommand
+was called, while a -1 timeout value means to expect forever
+for packets (no timeout). If ?timeout? is specified, an additional
+(optional) ?count? parameter can be specified, modifing the recv
+subcommand behaviour to return as soon as ?count? packets were
+already received. A special ?count? value of zero means
+to collect an infinite number of packets (at least until the
+timeout is not reached).
+
+The optional ?-hexdata? switch specify to return packets payload
+as hex digits instead of quoted strings. To use -hexdata is encouraged
+for all the applications, but the ones that needs to display packets
+in a human readable format.
+
+For default the timeout is set to -1, and count to 1 (in other
+words hping will wait forever if no packets are available, but
+will return when the first packet is received).
+
+Examples:
+
+# Capture a packet from eth0
+hping3.0.0-alpha> hping recv eth0
+{ip(ihl=5,ver=4,tos=02,totlen=58,id=63474,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=6,cksum=9ecb,saddr=192.168.1.6,daddr=213.82.224.41)+tcp(sport=33295,dport=110,seq=2486133764,ack=2745754339,x2=0,off=8,flags=pa,win=5840,cksum=7a69,urp=0)+tcp.nop()+tcp.nop()+tcp.timestamp(val=1021017,ecr=355869116)+data(str=STAT\0d\0a)}
+
+# Caputure a packet using the hex format for data payload
+hping3.0.0-alpha> hping recv -hexdata eth0
+ip(ihl=5,ver=4,tos=00,totlen=84,id=2435,fragoff=0,mf=0,df=0,rf=0,ttl=49,proto=1,cksum=25be,saddr=216.239.39.99,daddr=192.168.1.6)+icmp(type=0,code=0,id=55048,seq=512)+data(hex=3f565c1b000d7e4008090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637)
+
+# Wait for all the packets received in 5 seconds, and print how much they are
+hping3.0.0-alpha> puts [llength [hping recv eth0 5000 0]]
+36
+
+--
+
+################
+  hping iflist
+################
+
+The iflist subcommand returns a list of all the available interfaces
+(with the UP flag set), and information about every interface.
+Interface informations are returned as a Tcl list, that's
+an example:
+
+hping3.0.0-alpha> hping iflist
+{lo 16436 {127.0.0.1} {LOOPBACK}} {eth0 1500 {192.168.1.6} {}} 
+
+# But this may be more clear:
+
+hping3.0.0-alpha> foreach i [hping iflist] {puts $i}
+lo 16436 {127.0.0.1} {LOOPBACK}
+eth0 1500 {192.168.1.6} {}
+
+# As you can see both the interface addresses and flags are reported
+# as Tcl lists, in order to deal with multiple-flags and addresses
+# interfaces. This is an example:
+
+hping3.0.0-alpha> foreach i [hping iflist] {puts $i}
+lo0 33224 {127.0.0.1} {LOOPBACK}
+xl0 1500 {191.224.144.21 64.238.141.219} {}
+
+# The above host has an IPv4 alias for xl0
+
+--
+
+#########################
+  hping outifa <target>
+#########################
+
+Experienced users will not be satisfied with the iflist subcommand alone.
+Suppose you want to rewrite the ping program in hping, you need to
+know what is the interface used to send and receive packets for a given
+destination. The outifa subcommand does exactly this: it returns the
+IPv4 address of the outgoing interface for the <target> destination.
+
+Assuming there are no bugs nor hyper-strange configurations, the
+address returned will match at least one of the interface addresses
+returned with hping iflist. The implementation of this command
+may not work in all the cases in this beta version of hping.
+
+Example:
+
+hping3.0.0-alpha> hping outifa www.google.com
+192.168.1.6
+hping3.0.0-alpha> hping iflist
+{lo 16436 {127.0.0.1} {LOOPBACK}} {eth0 1500 {192.168.1.6} {}}
+
+# As you can see 192.168.1.6 is the eth0 unique address -- note that
+# the host is configured with a 192.168.1.1 as default gateway.
+
+To write a Tcl procedure that returns the name of the interface
+with a given address is trivial, such a procedure is included
+in the hping standard library (hpingstdlib.htcl).
+
+--
+
+##################################
+  hping send ?-nocompile? packet
+##################################
+
+This command is used to send TCP/IP packets. It is able to send
+packets specified in the same format the command 'hping recv' returns
+packets, this basically means that you can experiment with
+'hping recv' in order to undrestand how to send a given packet.
+Also note that a common pattern with hping3 is to receive
+packets with 'hping recv', modify this packets in some way
+and resend with 'hping send'. This makes the creation of scripts
+to do NAT and all the sort of TCP/IP flow manipulation very easy.
+
+In order to send a TCP packet with the SYN flag set to the
+host www.hping.org one can write:
+
+hping3> set target www.hping.org               
+www.hping.org
+hping3> set myaddr [hping outifa $target]
+192.168.1.6
+hping3> hping send "ip(saddr=$myaddr,daddr=$target,ttl=255)+tcp(sport=123,dport=80,flags=s)"
+
+Note that the first two commands are used to get the outgoing interface
+address. From the example it should be clear that in the hping3 world
+packets are strings rappresenting different layers of the packet.
+When a given layer is not specified by the user, hping try to set
+it at a reasonable value. For instance the user don't need to
+specify IP and TCP checksums for normal packets because hping will
+compute it automatically. Of curse to create broken packets it can
+be useful to specify a checksum field.
+
+Working with packets as strings, it is handy to create a packet
+starting with an empty string, adding a layer at a time: this makes
+the code very simple to read. For example the previous code to
+send a packet can be written this way:
+
+ set target www.hping.org
+ set myaddr [hping outifa $target]
+ set syn {}
+ append syn "ip(saddr=$myaddr,daddr=$target,ttl=255)"
+ append syn "+tcp(sport=123,dport=80,flags=2)"
+ hping send $syn
+
+You can cut&paste the code in a file called 'example.htcl', then
+run it using:
+
+ hping3 exec example.htcl
+
+Note that you can use all the features of Tcl, for example
+in order to send the same SYN packet with 10 different TTL values
+it is possible to modify the previous script to obtain this:
+
+ set target www.hping.org
+ set myaddr [hping outifa $target]
+ for {set ttl 0} {$ttl < 10} {incr ttl} {
+     set syn {}
+     append syn "ip(saddr=$myaddr,daddr=$target,ttl=$ttl)"
+     append syn "+tcp(sport=123,dport=80,flags=2)"
+     hping send $syn
+ }
+
+The '-nocompile' optional switch is used to tell hping to don't
+compile the packet (packet compilation calculate stuff like
+checksums, tot length, and so on), it is useful in order to
+send broken packets.
+
+--
+
+##################################################
+  hping getfield layer field ?skip? packet
+  hping hasfield layer field ?skip? packet
+  hping setfield layer field value ?skip? packet
+  hping delfield layer field ?skip? packet
+##################################################
+
+So in hping packets are strings, this makes to work with packets
+simple, but sometimes to modify a field may require to use
+string substitution, regexp, or alike, not very clean nor fast,
+so hping API exports functions to set, read, and test for
+given fields in given layers.
+
+'hping getfield' returns the value of the given 'field' in the given
+'layer', for 'packets'. For example:
+
+hping3> hping getfield ip ttl "ip(saddr=1.2.3.4,daddr=5.6.7.8,ttl=64)"
+64
+
+If the layer does not exists, an empty string is returned.
+
+In complex packets the same layer can be present more times,
+for example an ICMP error message can have its own IP header
+and the IP header of the quoted packet. In order to specify
+what is the right layer the 'skip' argument of get/has/set field
+is used. This argument specify how many layers of the specified
+type to skip before to get the field value, so to specify a
+skip value of 1 means to get the field from the second IP layer
+and so on. Example:
+
+hping3.0.0-alpha> set p [hping recv eth0]
+{ip(ihl=5,ver=4,tos=c0,totlen=58,id=62912,fragoff=0,mf=0,df=0,rf=0,ttl=64,proto=1,cksum=e500,saddr=192.168.1.7,daddr=192.168.1.6)+icmp(type=3,code=3,unused=0)+ip(ihl=5,ver=4,tos=00,totlen=30,id=60976,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=17,cksum=40c9,saddr=192.168.1.6,daddr=192.168.1.7)+udp(sport=33169,dport=10,len=10,cksum=94d6)+data(str=f\0a)}
+
+Remember that 'hping recv' returns a Tcl list, for default this list
+is composed of only one element, but anyway we need to get extract
+this element from the list:
+
+hping3.0.0-alpha> set packet [lindex $p 0]
+ip(ihl=5,ver=4,tos=c0,totlen=58,id=62912,fragoff=0,mf=0,df=0,rf=0,ttl=64,proto=1,cksum=e500,saddr=192.168.1.7,daddr=192.168.1.6)+icmp(type=3,code=3,unused=0)+ip(ihl=5,ver=4,tos=00,totlen=30,id=60976,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=17,cksum=40c9,saddr=192.168.1.6,daddr=192.168.1.7)+udp(sport=33169,dport=10,len=10,cksum=94d6)+data(str=f\0a)
+
+Now 'packet' is set to an ICMP error obtained using netcat to send an UDP packet
+to a non-bound port. We can ask for the checksum of the first ip layer:
+
+hping3.0.0-alpha> hping getfield ip cksum $packet
+e500
+
+If we want the second, we add a 'skip' argument of 1:
+
+hping3.0.0-alpha> hping getfield ip cksum 1 $packet
+40c9
+
+A 'skip' value of 0 is valid, and is equivalent to the
+form without the skip argument.
+
+'hping hasfield' is similar to getfield, but just returns 1 if the
+specified layer/field exists, otherwise 0 is returned.
+
+'hping setfield' is used to set a given field in a packet, it returns
+a new packet with the given field set to the specified value:
+
+hping3.0.0-alpha> hping setfield udp sport 2000 $packet
+ip(ihl=5,ver=4,tos=c0,totlen=58,id=62912,fragoff=0,mf=0,df=0,rf=0,ttl=64,proto=1,cksum=e500,saddr=192.168.1.7,daddr=192.168.1.6)+icmp(type=3,code=3,unused=0)+ip(ihl=5,ver=4,tos=00,totlen=30,id=60976,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=17,cksum=40c9,saddr=192.168.1.6,daddr=192.168.1.7)+udp(sport=2000,dport=10,len=10,cksum=94d6)+data(str=fa)
+
+So in order to modify a packet hold in a Tcl variable it is possible
+to write:
+
+ set packet [hping setfield udp sport 2000 $packet]
+
+'hping setfield' can't add fields, so an attempt to set a non-existent
+layer/field returns an error.
+
+Note that get/has/set field commands are not enough to deal
+with packets without to use 'regexp', 'regxub', 'split', and so,
+but other hping commands to directly add/remove layers, add
+fields, and so on, will be added before the hping3 stable release.
+
+Btw, note that field name and values are guaranteed to don't contain
+a '+', ',', ')', and other similar characters that are used in
+the syntax to describe packets, so to split packets in layers using
++ as separator, or to split a layer in fields using ',' as separator
+is prefrectly legal. Some example:
+
+hping3.0.0-alpha> foreach layer [split $packet +] {puts $layer}
+ip(ihl=5,ver=4,tos=c0,totlen=58,id=62912,fragoff=0,mf=0,df=0,rf=0,ttl=64,proto=1,cksum=e500,saddr=192.168.1.7,daddr=192.168.1.6)
+icmp(type=3,code=3,unused=0)
+ip(ihl=5,ver=4,tos=00,totlen=30,id=60976,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=17,cksum=40c9,saddr=192.168.1.6,daddr=192.168.1.7)
+udp(sport=33169,dport=10,len=10,cksum=94d6)
+data(str=fa)
+
+A more complex example: a Tcl procedure that split a packet in layers
+and fields.
+
+################################### split.htcl #################################
+set packet "ip(ihl=5,ver=4,tos=c0,totlen=58,id=62912,fragoff=0,mf=0,df=0,rf=0,ttl=64,proto=1,cksum=e500,saddr=192.168.1.7,daddr=192.168.1.6)+icmp(type=3,code=3,unused=0)+ip(ihl=5,ver=4,tos=00,totlen=30,id=60976,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=17,cksum=40c9,saddr=192.168.1.6,daddr=192.168.1.7)+udp(sport=33169,dport=10,len=10,cksum=94d6)+data(str=f\0a)"
+
+foreach layer [split $packet +] {
+    set t [split $layer ()]
+    set name [lindex $t 0]
+    set fields [lindex $t 1]
+    puts $name
+    foreach field [split $fields ,] {
+        puts "  $field"
+    }
+    puts {}
+}
+################################################################################
+
+This script produce the following output:
+
+ip
+  ihl=5
+  ver=4
+  tos=c0
+  totlen=58
+  id=62912
+  fragoff=0
+  mf=0
+  df=0
+  rf=0
+  ttl=64
+  proto=1
+  cksum=e500
+  saddr=192.168.1.7
+  daddr=192.168.1.6
+
+icmp
+  type=3
+  code=3
+  unused=0
+
+ip
+  ihl=5
+  ver=4
+  tos=00
+  totlen=30
+  id=60976
+  fragoff=0
+  mf=0
+  df=1
+  rf=0
+  ttl=64
+  proto=17
+  cksum=40c9
+  saddr=192.168.1.6
+  daddr=192.168.1.7
+
+udp
+  sport=33169
+  dport=10
+  len=10
+  cksum=94d6
+
+data
+  str=fa
+
+You can create your own procedure to deal with packets, but eventually
+the interface that seems the more useful will be included in the
+hping standard library. Two functions to convert hping APD packets
+to Tcl lists, and the reverse are already included in the hping standard
+library. Check for 'apd2list' and 'list2apd'. That's how they works:
+
+# Get a packet...
+hping3.0.0-alpha> set p [lindex [hping recv eth0] 0]
+ip(ihl=5,ver=4,tos=00,totlen=52,id=28845,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=6,cksum=bb46,saddr=192.168.1.5,daddr=192.168.1.6)+tcp(sport=3733,dport=4662,seq=2054230415,ack=1135045853,x2=0,off=8,flags=a,win=63700,cksum=a509,urp=0)+tcp.nop()+tcp.nop()+tcp.timestamp(val=6860018,ecr=13978115)
+
+# Convert it to a Tcl list
+hping3.0.0-alpha> apd2list $p
+{ip {ihl 5} {ver 4} {tos 00} {totlen 52} {id 28845} {fragoff 0} {mf 0} {df 1} {rf 0} {ttl 64} {proto 6} {cksum bb46} {saddr 192.168.1.5} {daddr 192.168.1.6}} {tcp {sport 3733} {dport 4662} {seq 2054230415} {ack 1135045853} {x2 0} {off 8} {flags a} {win 63700} {cksum a509} {urp 0}} tcp.nop tcp.nop {tcp.timestamp {val 6860018} {ecr 13978115}}
+
+With the Tcl list representation we can do what we like, than go back
+to the more human friedlty representation:
+
+hping3.0.0-alpha> list2apd $list
+ip(ihl=5,ver=4,tos=00,totlen=52,id=28845,fragoff=0,mf=0,df=1,rf=0,ttl=64,proto=6,cksum=bb46,saddr=192.168.1.5,daddr=192.168.1.6)+tcp(sport=3733,dport=4662,seq=2054230415,ack=1135045853,x2=0,off=8,flags=a,win=63700,cksum=a509,urp=0)+tcp.nop()+tcp.nop()+tcp.timestamp(val=6860018,ecr=13978115)
+
+Simple, isn't it?
+
+Btw, note that for most scripts you don't need to perform this kind of
+stuff, the hping native representation try to balance between the
+human and computer vision of packets.
+
+Finally, 'hping delfield' is able to remove the given layer/field
+from the packet. This is very useful in order to resend a packet
+got with 'hping recv': before to resend it we often need to remove
+the checksum fields from ip/udp/tcp/icmp layers so hping will
+recompute it again.
+
+--
+
+###############################################
+  hping recvraw ifname ?timeout? ?maxpackets?
+###############################################
+
+'hping recvraw' works exactly like 'hping recv', but packets
+are returned as raw binary data. This is useful for low-level
+access to packets using the 'binary' Tcl command.
+
+This will be more useful once the commands 'hping build' and 'hping describe'
+commands will be added (for APD -> binary, binary -> APD conversion).
+
+Example:
+
+hping3.0.0-alpha> string length [hping recvraw eth0]
+1540
+
+--
+
+######################
+  hping sendraw data
+######################
+
+Send binary data: that's like to call write(2) against a raw socket.
+It can be used in order to build special packets that can't be
+specified using the usual string representation (APD, from Ars Packet
+Description), but will be more useful once all the hping output
+operation will be able to handle layer-2. For now hping3's business
+is only at layer-3.
+
+

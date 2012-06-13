@@ -1,0 +1,158 @@
+Ce court document est pour les utilisateurs de hping-beta54 ou des versions
+précédentes et les aider à exploiter toutes les nouvelles fonctionnalités de
+cette version de hping2 en un temps restreint. Vous pouvez quand même
+vouloir lire la nouvelle page man mais ce qui suit vous aidera assurément :
+
+=== release candidate 2 news
+
+. Maintenant hping est capable d'envoyer/d'analyser les entêtes IP source
+  routées. Voir la page du manuel pour plus d'informations.
+
+. Hping a été presque ré-écrit, au moins toutes les parties les plus
+  importantes. Vous devriez faire l'expérience d'un code plus lisible,
+  compact, rapide à compiler.
+
+. Le nouveau code d'analyse des options vous permet de spécifier des options
+  abrégées. Vous pouvez maintenant utiliser --tcp-ti au lieu de
+  --tcp-timestamp par exemple et ainsi de suite.
+
+. La nouvelle fonctionnalité rand-dest permet d'envoyer le paquet à des
+  adresses IP aléatoires. Ceci est très utile pour faire des études de
+  l'Internet ou des scans aléatoires de larges réseaux.
+
+  Par exemple la ligne de commande suivante va envoyer des paquets TCP avec
+  le bit SYN vers le port 80 de l'espace d'adressage 192.168.0.0/16
+
+  hping 192.168.x.x --rand-dest -p 80 -S
+
+  Toute occurrence de 'x' est substituée par un nombre aléatoire dans
+  l'intervalle 0-255.
+
+. La nouvelle fonctionnalité rand-source permet d'envoyer des paquets avec
+  des adresses IP sources aléatoires. Utile pour tester quelques conditions
+  de DoS (ndt : dénis de service) contre des firewalls ou des piles TCP/IP
+  qui mettent en oeuvre des enregistrements d'informations basées sur
+  l'adresse IP.
+
+. La sortie a été un peu améliorée et fixée.
+
+. L'option "force un port destination incrémental" (++<port>) fonctionne
+  maintenant avec les paquets UDP et fonctionne mieux avec TCP, depuis
+  qu'elle est plus sélective avec les réponses en retour.
+
+. Maintenant vous devriez être réellement capables de fixer les numéros de
+  séquence et d'acquittement des paquets TCP. Le code rc1 était cassé car
+  atoi() était utilisé pour obtenir une valeur "unsigned long" (ndt : longue
+  valeur non signée)
+
+. La documentation (et la traduction française) a été mise à jour pour
+  refléter les changements.
+
+=== release candidate 1 news
+
+. Maintenant hping fonctionne mieux sur BSD, et fonctionne sur Solaris. Il
+  devrait être beaucoup plus simple de le porter sur une plate-forme non
+  supportée. Les problèmes avec les systèmes qui utilisent des pids (ndt :
+  numéros de processus) sur 32 bits sont fixés.
+
+. La sortie est différente pour être plus analysable (ndt : par un
+  programme) et compacte, par exemple :
+
+  len=46 ip=192.168.1.1 flags=RA DF seq=0 ttl=255 id=0 win=0 rtt=0.5 ms
+
+  maintenant la présence du drapeau IP Don't fragment (ndt : ne pas
+  fragmenter) est signalé avec 'DF'. tous les champs avec une valeur sont de
+  la forme 'champ=valeur'.
+
+. Spécifier l'interface de sortie avec -I n'est plus nécessaire, hping
+  essayera de détecter la bonne interface selon la table de routage système.
+  Bien sûr vous pouvez la forcer en utilisant -I.
+
+. Au lieu de spécifier -i u10000 pour avoir une vitesse de dix paquets par
+  seconde vous pouvez utiliser --fast.
+
+. Maintenant --traceroute (-T) implique --ttl 1. Vous pouvez forcer une
+  valeur en utilisant --ttl.
+
+. En utilisant hping comme traceroute vous avez maintenant les informations
+  RTT (ndt : temps aller-retour) à propos des sauts.
+
+. Vous pouvez surveiller un saut spécifique en mode traceroute, en utilisant
+  la syntaxe suivante :
+
+  hping2 -T www.yahoo.com --tr-keep-ttl --ttl 5
+
+  voyez la sortie :
+
+  HPING www.yahoo.com (ippp0 64.58.76.177): NO FLAGS are set, 40 headers + 0 dat
+  a bytes
+  5->TTL 0 during transit from 144.232.234.57  (sl-gw18-nyc-2-2.sprintlink.net)
+  5->RTT was: 136.9 ms
+  5->TTL 0 during transit from 144.232.234.57  (sl-gw18-nyc-2-2.sprintlink.net)
+  5->RTT was: 136.8 ms
+  5->TTL 0 during transit from 144.232.234.57  (sl-gw18-nyc-2-2.sprintlink.net)
+  5->RTT was: 136.9 ms
+  5->TTL 0 during transit from 144.232.234.57  (sl-gw18-nyc-2-2.sprintlink.net)
+  5->RTT was: 136.7 ms
+
+ --- www.yahoo.com hping statistic ---
+ 4 packets tramitted, 0 packets received, 100% packet loss
+ round-trip min/avg/max = 136.7/136.8/136.9 ms
+
+ vous n'avez que les informations sur le 5ème saut, après Ctrl+C le temps
+ aller-retour min/avg/max (ndt : minimum, moyen, maximum) est calculé en
+ utilisant les temps de ce saut.
+
+. En utilisant l'option --tr-stop vous pouvez obtenir que hping s'arrête
+  quand est reçu le premier paquet correspondant qui n'est pas un ICMP time
+  exceeded in transit, comme le traceroute original. Sans cela hping
+  continue d'envoyer des paquets au système cible pour toujours.
+
+. Vous pouvez utiliser --tr-no-rtt pour supprimer l'information rtt dans le
+  mode traceroute.
+
+. Avec la fonctionnalité --tcp-timestamp vous pouvez deviner l'uptime d'un
+  système distant. Par exemple :
+
+HPING www.hping.org (ippp0 192.70.106.166): S set, 40 headers + 0 data bytes
+56 bytes from 192.70.106.166: flags=SA seq=0 ttl=49 id=28881 win=16080 rtt=105.0 ms
+  TCP timestamp: 258597761
+
+56 bytes from 192.70.106.166: flags=SA seq=1 ttl=49 id=28882 win=16080 rtt=105.4 ms
+  TCP timestamp: 258597860
+  HZ seems 100
+  System uptime seems: 29 days, 22 hours, 19 minutes, 38 seconds
+
+56 bytes from 192.70.106.166: flags=SA seq=2 ttl=49 id=28883 win=16080 rtt=105.1 ms
+  TCP timestamp: 258597960
+  HZ seems 100
+  System uptime seems: 29 days, 22 hours, 19 minutes, 39 seconds
+
+
+--- www.hping.org hping statistic ---
+3 packets tramitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 105.0/105.2/105.4 ms
+
+  Comme vous pouvez voir, la première réponse ne contient pas d'information
+  de uptime puisque au moins deux paquets sont nécessaires pour estimer la
+  fréquence d'incrémentation du minuteur du timestamp (qui est HZ dans la
+  sortie).
+
+. Vous pouvez maintenant utiliser les requêtes ICMP de timestamp et de
+  masque réseau. Deux raccourcis sont fournis pour les utiliser : --icmp-ts
+  et --icmp-addr.
+
+. Maintenant le traitement du numéro de séquence a été revu pour permettre à
+  hping de montrer l'information correcte de rtt même si le numéro de
+  séquence repasse à zéro.
+
+. Maintenant hping ne devrait jamais (avec un peu de chance) générer une
+  erreur SIGBUS sur sparc.
+
+J'espère que vous trouverez hping meilleur à utiliser et plus puissant, ces
+améliorations ont été mises en oeuvre grâce à de nombreuses personnes qui
+ont beaucoup aidé avec du code et de nouvelles idées, voyez le fichier
+CHANGES pour plus d'informations et les crédits.
+
+amusez vous bien,
+antirez

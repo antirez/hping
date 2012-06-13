@@ -1,0 +1,59 @@
+#hping softrealtime 1
+source "hpingstdlib.htcl"
+
+if {$argc != 1} {
+	puts "usage: ping.htcl hostname"
+	exit 1
+}
+
+set target [lindex $argv 0]
+set targetip [hping resolve $target]
+
+puts "PING $target ($targetip): 56 data bytes"
+
+set outifaddr [hping outifa $targetip]
+set outifname [outifname $targetip]
+hping setfilter $outifname "icmp and host $targetip"
+
+set icmp_id [expr int(rand()*65536)]
+set icmp_seq 0
+array set icmp_rtt_tab {}
+
+proc send_icmp {} {
+	after 1000 send_icmp
+	global outifaddr targetip icmp_id icmp_seq icmp_rtt_tab
+	append icmp "ip(saddr=$outifaddr,daddr=$targetip,ttl=255)+"
+	append icmp "icmp(type=8,code=0,id=$icmp_id,seq=$icmp_seq)+"
+	append icmp "data(str=[string repeat X 28])"
+	set icmp_rtt_tab($icmp_seq) [clock clicks -milliseconds]
+	hping send $icmp
+	#puts "! $icmp_seq"
+	incr icmp_seq
+}
+
+proc recv_icmp {} {
+	global outifname outifaddr targetip icmp_id icmp_rtt_tab
+	set packets [hping recv $outifname 0 1000]
+	#puts [llength $packets]
+	foreach p $packets {
+		if {[GetIpSaddr $p] != $targetip} continue
+		if {[GetIpDaddr $p] != $outifaddr} continue
+		if {[GetIcmpType $p] != 0} continue
+		if {[GetIcmpCode $p] != 0} continue
+		if {[GetIcmpId $p] != $icmp_id} continue
+
+		set seq [GetIcmpSeq $p]
+		set ttl [GetIpTtl $p]
+		set rtt [expr [clock clicks -milliseconds] - $icmp_rtt_tab($seq)]
+		puts "xxx bytes from [GetIpSaddr $p]: icmp_seq=$seq ttl=$ttl time=$rtt.0 ms"
+	}
+	after 10 recv_icmp
+}
+
+hping recv $outifname 0
+
+after 10 send_icmp
+after idle recv_icmp
+vwait forver
+
+# vim: filetype=tcl

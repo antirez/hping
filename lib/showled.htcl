@@ -1,0 +1,44 @@
+package require Tk
+
+set bgcolor {#FFFFFF}
+
+wm title . {hping3 -- showled}
+
+set w .main
+
+frame $w
+pack $w -side top
+. config -background $bgcolor
+$w config -background $bgcolor
+
+# canvas
+set ifnum [llength [hping iflist]]
+canvas $w.can -width 100 -height [expr ($ifnum*25)+40]
+$w.can config -background $bgcolor
+pack $w.can -fill both -expand true
+
+# show leds
+proc draw {} {
+    global w
+
+    set ifnum [llength [hping iflist]]
+    $w.can config -width 100 -height [expr ($ifnum*25)+40]
+    $w.can delete all
+    set y 20
+    foreach i [hping iflist] {
+	set ifname [lindex $i 0]
+	if {[string match *NOLINK* [lindex $i 4]]} {
+	    set color red
+	} else {
+	    set color green
+	}
+	$w.can create oval 20 $y 40 [expr $y+20] -fill $color -width 1 -outline black -tag $ifname
+	$w.can create text 60 [expr $y+10] -text $ifname -tag $ifname.t
+	incr y 25
+    }
+    after 1000 draw
+}
+
+after 0 draw
+
+#vim: set filetype=tcl softtabstop=4

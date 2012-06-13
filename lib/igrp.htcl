@@ -1,0 +1,3 @@
+#hping send "ip(saddr=192.168.41.183,daddr=255.255.255.255,ttl=255)+igrp(opcode=update,edition=[expr 114+$i],autosys=1,interior=1,system=0,exterior=0)+igrp.entry(dest=$i.7.6)"
+
+hping send "ip(saddr=192.168.41.183,daddr=192.168.41.184,ttl=255)+igrp(opcode=request,edition=100,autosys=1,interior=0,system=0,exterior=0)"

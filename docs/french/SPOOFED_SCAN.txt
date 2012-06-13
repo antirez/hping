@@ -1,0 +1,128 @@
+Ce qui suit est le postage original (ndt : du moins sa traduction) à bugtraq
+à propos de la méthode de scan usurpée/passive/indirecte. Voir le fichier
+HPING2-HOWTO pour plus d'informations.
+
+antirez
+
+---
+
+  Salut,
+
+        J'ai découvert une nouvelle méthode de scan de ports TCP.  Au
+        contraire de toutes les autres elle vous permet de scanner en
+        utilisant des paquets usurpés (ndt : dont l'adresse IP source est
+        usurpée), ainsi les systèmes scannés ne peuvent pas voir votre
+        adresse réelle. Afin de réaliser cela j'utilise trois particularités
+        bien connues des mises en oeuvre TCP/IP de la plupart des OS.
+
+          (1) * les systèmes répondent SYN|ACK à SYN si le port TCP cible
+            est ouvert, et RST|ACK si le port TCP cible est fermé.
+
+          (2) * Vous pouvez connaître le nombre de paquets que les systèmes
+            envoient en utilisant le champ id de l'entête IP. Voir mes
+            précédents postages 'à propos de l'entête IP' dans cette mailing
+            liste.
+
+          (3) * les systèmes répondent RST à SYN|ACK, ne répondent rien à
+            RST.
+
+
+        Les joueurs:
+
+          système A - le système malfaisant, l'attaquant.
+          système B - le système silencieux.
+          système C - le système victime.
+
+        A est votre système.
+        B est un système particulier : il ne doit envoyer aucun paquet
+         pendant que vous scannez C. Il y a énormément de systèmes à 'trafic
+         nul' sur Internet, spécialement la nuit :)
+        C est la victime, il doit être vulnérable aux scans SYN.
+
+        J'ai appelé cette méthode de scan 'scan du système muet' (ndt :
+        l'autre traduction de 'dumb' est bête) en référence aux
+        caractéristiques du système B.
+
+
+        Comment elle fonctionne :
+
+        Le système A surveille le nombre de paquets sortants depuis B en
+        utilisant le champ id de l'entête IP. Vous pouvez faire ceci
+        simplement en utilisant hping :
+
+#hping B -r
+HPING B (eth0 xxx.yyy.zzz.jjj): no flags are set, 40 data bytes
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=0 ttl=64 id=41660 win=0 time=1.2 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=1 ttl=64 id=+1 win=0 time=75 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=2 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=3 ttl=64 id=+1 win=0 time=90 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=4 ttl=64 id=+1 win=0 time=91 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=5 ttl=64 id=+1 win=0 time=87 ms
+-cut-
+..
+.
+
+        Comme vous pouvez le voir, les incréments du champ id sont toujours
+        de 1. Ainsi ce système a la caractéristique requise pour jouer le
+        rôle de B.
+
+        Maintenant le système A envoie des paquets SYN au port X de C en
+        usurpant l'adresse source de B.
+        (avec hping => 0.67 c'est très facile, http://www.kyuzz.org/antirez)
+        si le port X de C est ouvert, le système C enverra SYN|ACK à B (oui,
+        le système C ne sait pas que le véritable expéditeur est A). Dans ce
+        cas le système B répond au SYN|ACK avec un RST.
+        Si nous envoyons au système C quelques paquets SYN il répondra à B
+        quelques paquet SYN|ACK, ainsi B répondra à C quelques RST... ainsi
+        nous verrons que le système B est en train d'envoyer des paquets !
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=17 ttl=64 id=+1 win=0 time=96 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=18 ttl=64 id=+1 win=0 time=80 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=19 ttl=64 id=+2 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=20 ttl=64 id=+3 win=0 time=94 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=21 ttl=64 id=+1 win=0 time=92 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=22 ttl=64 id=+2 win=0 time=82 ms
+-cut-
+..
+.
+
+        Le port est ouvert !
+
+        Par contre, si le port X de C est fermé alors en envoyant à C
+        quelques paquets SYN avec l'adresse usurpée de B, il répondra avec
+        des paquets RST à B, et B ne répondra pas (voir 3). Ainsi nous
+        verrons que le système B n'est en train d'envoyer aucun paquet :
+
+.
+..
+-cut-
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=52 ttl=64 id=+1 win=0 time=85 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=53 ttl=64 id=+1 win=0 time=83 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=54 ttl=64 id=+1 win=0 time=93 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=55 ttl=64 id=+1 win=0 time=74 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=56 ttl=64 id=+1 win=0 time=95 ms
+60 bytes from xxx.yyy.zzz.jjj: flags=RA seq=57 ttl=64 id=+1 win=0 time=81 ms
+-cut-
+..
+.
+
+        Le port est fermé.
+
+        Tout ceci peut paraître compliqué à réaliser, mais utiliser deux
+        sessions de hping dans des consoles virtuelles Linux ou sous X rend
+        cela plus simple.
+        La première session surveille le système B : hping B -r
+        La seconde session envoie des paquets SYN spoofés : hping C -a B -S
+
+        Désolé si mon anglais n'est pas clair.
+        Cependant ce postage n'est pas adéquat pour décrire exhaustivement
+        cette méthode de scan, ainsi je vais écrire un article à ce sujet,
+        en particulier comment mettre en oeuvre ceci dans un scanner de
+        ports (i.e.  nmap), et à propos des caractéristiques des joueurs et
+        des OS utilisés.
+
+bonne nouvelle année,
+antirez

@@ -1,0 +1,6 @@
+while {1} {
+	set xx [hping recv -hexdata eth0 0 100]
+	foreach x $xx {
+		puts "$x\n"
+	}
+}

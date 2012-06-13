@@ -1,0 +1,146 @@
+################################################################################
+#
+# Helper functions
+# This will be part of the hping standard library (possibly modified)
+#
+
+################################################################################
+# Functions related to network interface managment
+################################################################################
+
+# Return the name of the output interface for address addr
+proc outifname addr {
+	set ifa [hping outifa $addr]
+	set interfaces [hping iflist]
+	foreach i $interfaces {
+		foreach ia [lindex $i 2] {
+			if {$ifa == $ia} {
+				return [lindex $i 0]
+			}
+		}
+	}
+	error "Unable to find the output interface name for $addr"
+}
+
+################################################################################
+# Functions related to packets description
+################################################################################
+
+interp alias {} GetApdField {} hping getfield
+
+proc SetApdField {protocol field value pvar} {
+        upvar $pvar p
+	set p [hping setfield $protocol $field $value $p]
+}
+
+proc DelApdField {protocol field pvar} {
+        upvar $pvar p
+	set p [hping delfield $protocol $field $p]
+}
+
+interp alias {} GetIpSaddr {} hping getfield ip saddr
+interp alias {} GetIpDaddr {} hping getfield ip daddr
+interp alias {} GetIpTtl {} hping getfield ip ttl
+interp alias {} GetIpProto {} hping getfield ip proto
+interp alias {} GetTcpSport {} hping getfield tcp sport
+interp alias {} GetTcpDport {} hping getfield tcp dport
+interp alias {} GetTcpSeq {} hping getfield tcp seq
+interp alias {} GetTcpAck {} hping getfield tcp ack
+interp alias {} GetTcpTimestampVal {} hping getfield tcp.timestamp val
+interp alias {} GetTcpTimestampEcr {} hping getfield tcp.timestamp ecr
+interp alias {} GetIcmpType {} hping getfield icmp type
+interp alias {} GetIcmpCode {} hping getfield icmp code
+interp alias {} GetIcmpId {} hping getfield icmp id
+interp alias {} GetIcmpSeq {} hping getfield icmp seq
+interp alias {} GetDataHex {} hping getfield data hex
+
+# From APD to Tcl list
+proc apd2list apd {
+    set list {}
+    foreach layer [split $apd +] {
+	set t [split $layer ()]
+	set name [lindex $t 0]
+	set fields [lindex $t 1]
+	set l [list $name]
+	foreach fieldvalue [split $fields ,] {
+	    foreach {field value} [split $fieldvalue =] break
+	    lappend l [list $field $value]
+	}
+	lappend list $l
+    }
+    return $list
+}
+
+# From Tcl list to APD
+proc list2apd list {
+    if {![llength $list]} return
+    foreach layer $list {
+	append apd [lindex $layer 0] (
+	set layer [lrange $layer 1 end]
+	foreach fieldvalue $layer {
+	    append apd [lindex $fieldvalue 0] = [lindex $fieldvalue 1] ,
+	}
+	if {[llength $layer] != 0} {
+	    set apd [string range $apd 0 end-1]
+	}
+	append apd )+
+    }
+    set apd [string range $apd 0 end-1]
+    return $apd
+}
+
+################################################################################
+# High-level networking functions
+################################################################################
+
+# Return non-zero if the host addr seems awake.
+# This is done sending a TCP ACK packet and an ICMP echo request
+# and searching for at least a reply.
+proc isawake addr {
+	set addr [hping resolve $addr]
+	set ifname [outifname $addr]
+	set ifaddr [hping outifa $addr]
+	
+	hping recv eth0 0
+
+	set ip "ip(saddr=$ifaddr,daddr=$addr,ttl=64)"
+	append ack $ip "+tcp(sport=11005,dport=11111,flags=a)"
+	append icmp $ip "+icmp(type=8,code=8,id=11111)"
+
+	hping send $ack
+	hping send $icmp
+
+	for {set i 0} {$i < 10} {incr i} {
+		set packets [hping recv $ifname 100 0]
+		foreach p $packets {
+			if {([GetIpSaddr $p] == $addr) && (([GetIcmpId $p] == 11111) || ([GetTcpSport $p] == 11111))} {
+			     	return 1;
+			     }
+		}
+	}
+	return 0;
+}
+
+# Todo, check the OS's version and to what needed.
+proc DropOutgoingResets {} {
+	exec "iptables -A OUTPUT -p tcp -j DROP --tcp-flags RST RST"
+}
+
+################################################################################
+# Non hping specific Tcl functions that seems to help
+################################################################################
+
+proc isempty l {
+    expr {[llength $l] == 0}
+}
+
+proc haskey {arrayname key} {
+    expr {[llength [uplevel "array names $arrayname -exact $key"]] != 0}
+}
+
+#
+# End of the hping standard library
+#
+################################################################################
+
+# vim: filetype=tcl

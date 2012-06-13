@@ -1,0 +1,7 @@
+while {1} {
+	set x [hping recvraw eth0]
+	hping sendraw [lindex $x 0]
+	hping sendraw [lindex $x 0]
+	hping sendraw [lindex $x 0]
+	hping sendraw [lindex $x 0]
+}
