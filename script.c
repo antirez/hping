@@ -23,8 +23,8 @@
 #include <sched.h>
 
 #include <sys/ioctl.h>
-#include <pcap.h>
-#include <net/bpf.h>
+#include <net/bpf.h> 
+#include <pcap.h> //pcap.h *must* be included AFTER net/bpf.h for osx
 
 #include "release.h"
 #include "hping2.h"
@@ -262,7 +262,7 @@ static int HpingSendRawCmd(ClientData clientData, Tcl_Interp *interp,
 #define APD_MAX_LEN (65536*2+4096)
 char *GetPacketDescription(char *data, int len, int hexdata)
 {
-	unsigned char *p = (char*)data;
+	unsigned char *p = (unsigned char*) data;
 	struct ars_packet pkt;
 	char *d = malloc(APD_MAX_LEN);
 	char *ret;

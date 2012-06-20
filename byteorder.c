@@ -68,7 +68,8 @@ int main(int argc, char **argv)
 	}
 
 	if (debug) {
-		printf("sizeof(unsigned int) = %d\n", sizeof(unsigned int));
+        //printf("sizeof(unsigned int) = %d\n", sizeof(unsigned int));
+		printf("sizeof(unsigned int) = %zu\n", sizeof(unsigned int));
 		printf("unsigned int test = 1;\n");
 		printf("in memory as: ");
 		for (j = 0; j < sizeof(unsigned int); j++)

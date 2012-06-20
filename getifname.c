@@ -340,7 +340,8 @@ int get_output_if(struct sockaddr_in *dest, struct sockaddr_in *ifip)
 	}
 
 	len = sizeof(iface_out);
-	if (getsockname(sock_rt, (struct sockaddr *)&iface_out, &len) == -1 ) {
+    //if (getsockname(sock_rt, (struct sockaddr *)&iface_out, &len) == -1 ) { //Pointer targets in passing argument 3 of 'getsockname' differ in signedness
+	if (getsockname(sock_rt, (struct sockaddr *)&iface_out, (unsigned int*)&len) == -1 ) {
 		if (opt_debug)
 			perror("DEBUG: [get_output_if] getsockname");
 		close(sock_rt);

@@ -127,7 +127,8 @@ int adbuf_addchar(struct adbuf *b, int c)
 	if (adbuf_ptr(b) == NULL)
 		return 1; /* bad buffer in input */
 	if (b->left >= 2) {
-		unsigned char *p = b->buf + adbuf_used(b);
+		//unsigned char *p = b->buf + adbuf_used(b); //pointer targets in initiation differ in signedness
+        unsigned char *p = (unsigned char *)b->buf + adbuf_used(b);
 
 		*p = c;
 		*(p+1) = '\0';
