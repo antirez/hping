@@ -16,8 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <pcap.h>
 #include <net/bpf.h>
+#include <pcap.h> //pcap.h *must* be included AFTER net/bpf.h 
 
 #include "globals.h"
 
@@ -51,7 +51,8 @@ int close_pcap()
 
 int pcap_recv(char *packet, unsigned int size)
 {
-        char *p = NULL;
+        //char *p = NULL; //if p is signed, then you will later be setting its contents to an unsigned value
+        unsigned char *p = NULL;
         int pcapsize;
 
 	if (opt_debug)

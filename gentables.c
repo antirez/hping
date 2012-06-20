@@ -72,7 +72,7 @@ void gen_rcset(int hdr)
 		if (!p || !i) {
 			printf("-1, ");
 		} else {
-			printf("%2d, ", p-cset);
+			printf("%2ld, ", p-cset);
 		}
 		if (!((i+1) % EFL))
 			printf("\n");
