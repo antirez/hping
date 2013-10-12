@@ -315,7 +315,8 @@ int get_if_name(void)
  * to the OS routing table. Derived from R.Stevens */
 int get_output_if(struct sockaddr_in *dest, struct sockaddr_in *ifip)
 {
-	int sock_rt, len, on=1;
+	socklen_t len;
+	int sock_rt, on=1;
 	struct sockaddr_in iface_out;
  
 	memset(&iface_out, 0, sizeof(iface_out));
