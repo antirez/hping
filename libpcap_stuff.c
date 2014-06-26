@@ -16,8 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <pcap.h>
 #include <net/bpf.h>
+#include <pcap.h>
 
 #include "globals.h"
 
