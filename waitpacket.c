@@ -353,57 +353,60 @@ int recv_tcp(void *packet, size_t size)
 		tcp_exitcode = tcp.th_flags;
 
 		status = rtt(&sequence, ntohs(tcp.th_dport), &ms_delay);
+                
+                if(ms_delay != 0.0) {
 
-		if (opt_seqnum) {
+                    if (opt_seqnum) {
 			static __u32 old_th_seq = 0;
 			__u32 seq_diff, tmp;
 
 			tmp = ntohl(tcp.th_seq);
 			if (tmp >= old_th_seq)
-				seq_diff = tmp - old_th_seq;
+                            seq_diff = tmp - old_th_seq;
 			else
-				seq_diff = (4294967295U - old_th_seq)
-					+ tmp;
+                            seq_diff = (4294967295U - old_th_seq)
+                                + tmp;
 			old_th_seq = tmp;
 			printf("%10lu +%lu\n",
-				(unsigned long) tmp,
-				(unsigned long) seq_diff);
+                               (unsigned long) tmp,
+                               (unsigned long) seq_diff);
 			goto out;
-		}
+                    }
 
-		if (opt_quiet)
+                    if (opt_quiet)
 			goto out;
 
-		flags[0] = '\0';
-		if (tcp.th_flags & TH_RST)  strcat(flags, "R");
-		if (tcp.th_flags & TH_SYN)  strcat(flags, "S");
-		if (tcp.th_flags & TH_ACK)  strcat(flags, "A");
-		if (tcp.th_flags & TH_FIN)  strcat(flags, "F");
-		if (tcp.th_flags & TH_PUSH) strcat(flags, "P");
-		if (tcp.th_flags & TH_URG)  strcat(flags, "U");
-		if (tcp.th_flags & TH_X)    strcat(flags, "X");
-		if (tcp.th_flags & TH_Y)    strcat(flags, "Y");
-		if (flags[0] == '\0')    strcat(flags, "none");
+                    flags[0] = '\0';
+                    if (tcp.th_flags & TH_RST)  strcat(flags, "R");
+                    if (tcp.th_flags & TH_SYN)  strcat(flags, "S");
+                    if (tcp.th_flags & TH_ACK)  strcat(flags, "A");
+                    if (tcp.th_flags & TH_FIN)  strcat(flags, "F");
+                    if (tcp.th_flags & TH_PUSH) strcat(flags, "P");
+                    if (tcp.th_flags & TH_URG)  strcat(flags, "U");
+                    if (tcp.th_flags & TH_X)    strcat(flags, "X");
+                    if (tcp.th_flags & TH_Y)    strcat(flags, "Y");
+                    if (flags[0] == '\0')    strcat(flags, "none");
 
-		log_ip(status, sequence);
-		printf("sport=%d flags=%s seq=%d win=%d rtt=%.1f ms\n",
-			ntohs(tcp.th_sport), flags, sequence,
-			ntohs(tcp.th_win), ms_delay);
+                    log_ip(status, sequence);
+                    printf("sport=%d flags=%s seq=%d win=%d rtt=%.1f ms\n",
+                           ntohs(tcp.th_sport), flags, sequence,
+                           ntohs(tcp.th_win), ms_delay);
 
-		if (opt_verbose) {
+                    if (opt_verbose) {
 			printf("seq=%lu ack=%lu sum=%x urp=%u\n\n",
-					(unsigned long) ntohl(tcp.th_seq),
-					(unsigned long) ntohl(tcp.th_ack),
-					tcp.th_sum, ntohs(tcp.th_urp));
-		}
+                               (unsigned long) ntohl(tcp.th_seq),
+                               (unsigned long) ntohl(tcp.th_ack),
+                               tcp.th_sum, ntohs(tcp.th_urp));
+                    }
 
-		/* Get and log the TCP timestamp */
-		if (opt_tcp_timestamp && status != S_RECV)
+                    /* Get and log the TCP timestamp */
+                    if (opt_tcp_timestamp && status != S_RECV)
 			print_tcp_timestamp(packet, size, (int)ms_delay);
-out:
-		if (opt_incdport && !opt_force_incdport)
+                  out:
+                    if (opt_incdport && !opt_force_incdport)
 			dst_port++;
-		return 1;
+                    return 1;
+                }
 	}
 	return 0;
 }
