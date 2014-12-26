@@ -808,7 +808,7 @@ static char *ars_decode_hex(struct ars_packet *pkt, char *s, int *blen)
 	saved = d;
 	while(*s) {
 		int x0, x1;
-		
+
 		x0 = hextab[tolower(*s)];
 		x1 = hextab[tolower(*(s+1))];
 		if (x0 == 255 || x1 == 255) {
@@ -820,7 +820,7 @@ static char *ars_decode_hex(struct ars_packet *pkt, char *s, int *blen)
 		*d++ = (x0 << 4) | x1;
 		s += 2;
 	}
-	return saved;
+	return (char*)saved;
 }
 
 static char *ars_decode_string(struct ars_packet *pkt, char *s, int *blen)
@@ -849,7 +849,7 @@ static char *ars_decode_string(struct ars_packet *pkt, char *s, int *blen)
 		bl++;
 	}
 	*blen = bl;
-	return saved;
+	return (char*)saved;
 }
 
 #define ARS_DATA_BUF_SIZE 4096

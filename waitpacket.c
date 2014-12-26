@@ -494,14 +494,14 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
 
     printf("  Clock skew detection...\n");
     printf("    hz: %d\n", hz);
-    printf("    received tstamp (converted in ms according to hz): %Ld\n", tstampms);
+    printf("    received tstamp (converted in ms according to hz): %lld\n", tstampms);
     printf("    rtt in milliseconds: %d\n", rttms);
 
     tstampms2 = tstampms-(rttms/2); /* Assuming symmetric path for packets... */
     localms = mstime();
     currdelta = localms-tstampms2;
-    printf("    tstamp-(rtt/2): %Ld\n", tstampms2);
-    printf("    local/remote clock delta: %Ld\n", currdelta);
+    printf("    tstamp-(rtt/2): %lld\n", tstampms2);
+    printf("    local/remote clock delta: %lld\n", currdelta);
     deltavect[deltanum] = currdelta;
     deltartt[deltanum] = rttms;
     deltanum++;
@@ -528,7 +528,7 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
         validpackets = 0;
         for (j = 0; j < cs_vector_len; j++) {
             if (minrtt > 10 && (deltartt[j]-minrtt > minrtt/10)) {
-                printf("    # Not used packet %d/%d with rtt %Ld (max acceptable %Ld)\n", j+1, cs_vector_len, deltartt[j], minrtt+(minrtt/10));
+                printf("    # Not used packet %d/%d with rtt %lld (max acceptable %lld)\n", j+1, cs_vector_len, deltartt[j], minrtt+(minrtt/10));
                 continue;
             }
             sum += deltavect[j];
@@ -538,7 +538,7 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
         deltanum = 0; /* reset the counter anyway */
         if (validpackets) {
             sum /= validpackets;
-            printf("    >> error corrected delta: %Ld** (based on %d of %d packets)\n", sum, validpackets, cs_vector_len);
+            printf("    >> error corrected delta: %lld** (based on %d of %d packets)\n", sum, validpackets, cs_vector_len);
             sample = realloc(sample,sizeof(*sample)*(samplelen+1));
             samplelocal = realloc(samplelocal,sizeof(*samplelocal)*(samplelen+1));
             if (!sample || !samplelocal) {
@@ -571,12 +571,12 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
             localdelta = samplelocal[samplelen-1-j]-samplelocal[i-j];
             delta = sample[samplelen-1-j]-sample[i-j];
             skew = (delta*1000000)/localdelta; /* nanoseconds */
-            printf("%Ld ", skew);
+            printf("%lld ", skew);
             skewsum += skew;
         }
         printf(") next line is the average\n");
         skewsum /= cs_window_shift;
-        printf("    %d sec. window SKEW: %Ld nanoseconds/second\n", cs_window, skewsum);
+        printf("    %d sec. window SKEW: %lld nanoseconds/second\n", cs_window, skewsum);
         /* Compute the SKEW from the full range of samples we have */
         skewsum = 0;
         for (j = 0; j < cs_window_shift; j++) {
@@ -586,7 +586,7 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
             skewsum += skew;
         }
         skewsum /= cs_window_shift;
-        printf(">   %Ld sec. window SKEW: %Ld nanoseconds/second\n", localdelta/1000, skewsum);
+        printf(">   %lld sec. window SKEW: %lld nanoseconds/second\n", localdelta/1000, skewsum);
     } else {
         printf("  !! Not enough data to show reliable skew, wait please...\n");
         if (samplelen > 1) {
@@ -595,9 +595,9 @@ void clock_skew(int hz, __u32 tstamp, int rttms)
             delta = sample[samplelen-1]-sample[0];
             skew = (delta*1000000)/localdelta;
             printf("\n  Early info just to take you happy... ;)\n");
-            printf("     early unreliable skew guess: %Ld nanoseconds per second\n", skew);
-            printf("     early guess localdelta: %Ld ms\n", localdelta);
-            printf("     early delta: %Ld ms\n", delta);
+            printf("     early unreliable skew guess: %lld nanoseconds per second\n", skew);
+            printf("     early guess localdelta: %lld ms\n", localdelta);
+            printf("     early delta: %lld ms\n", delta);
         }
     }
     printf("  collected %d/%d deltas for next sample\n",
@@ -608,7 +608,7 @@ void print_tcp_timestamp(void *tcp, int tcpsize, int rttms)
 {
 	int optlen;
 	unsigned char *opt;
-	__u32 tstamp, echo;
+	__u32 tstamp = 0, echo;
 	static __u32 first_tstamp = 0;
         static unsigned long long first_mstime = 0;
 	struct mytcphdr tmptcphdr;
@@ -622,7 +622,7 @@ void print_tcp_timestamp(void *tcp, int tcpsize, int rttms)
 	/* bad len or no options in the TCP header */
 	if (tcphdrlen <= 20 || tcphdrlen < tcpsize)
 		return;
-	optlen = tcphdrlen - TCPHDR_SIZE; 
+	optlen = tcphdrlen - TCPHDR_SIZE;
 	opt = (unsigned char*)tcp + TCPHDR_SIZE; /* skips the TCP fix header */
 	while(optlen) {
 		switch(*opt) {

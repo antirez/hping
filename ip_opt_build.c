@@ -16,16 +16,16 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-                     
+
 #include "hping2.h"
 #include "globals.h"
 
 unsigned char ip_opt_build(char* ip_opt)
 {
-	unsigned char optlen = 0;
-	unsigned long ip;
+    unsigned char optlen = 0;
+    unsigned long ip;
 
-    memset(ip_opt, 1, sizeof(ip_opt));
+    memset(ip_opt, 1, 40);
 
     if (opt_lsrr)
     {
@@ -59,11 +59,11 @@ unsigned char ip_opt_build(char* ip_opt)
 	{
         if (optlen<=33)
         {
-    		ip_opt[optlen]=IPOPT_RR;
-     		ip_opt[optlen+1]=39-optlen;
-    		ip_opt[optlen+2]=8;
-    		ip=inet_addr("1.2.3.4");
-    		memcpy(ip_opt+optlen+3,&ip,4);
+            ip_opt[optlen]=IPOPT_RR;
+            ip_opt[optlen+1]=39-optlen;
+            ip_opt[optlen+2]=8;
+            ip=inet_addr("1.2.3.4");
+            memcpy(ip_opt+optlen+3,&ip,4);
             optlen=39;
         }
         else

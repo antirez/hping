@@ -1,4 +1,4 @@
-#ifndef HPING_HSTRNIG_H
+#ifndef HPING_HSTRING_H
 #define HPING_HSTRING_H
 
 int strisnum(char *s);

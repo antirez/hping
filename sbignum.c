@@ -1637,10 +1637,11 @@ int mpz_gcd(mpz_ptr g, mpz_ptr a, mpz_ptr b)
  * 0 is returned. */
 u_int32_t mpz_gcd_ui(mpz_ptr g, mpz_ptr a, u_int32_t b)
 {
-	g = g;
-	a = a;
-	b = b;
-	return SBN_OK;
+    /* TODO: implement me. */
+    ((void) g);
+    ((void) a);
+    ((void) b);
+    return SBN_OK;
 }
 
 /* ----------------------- to/from string conversion ------------------------ */

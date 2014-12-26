@@ -1,12 +1,12 @@
-/* 
- * $smu-mark$ 
- * $name: libpcap_stuff.c$ 
- * $author: Salvatore Sanfilippo <antirez@invece.org>$ 
- * $copyright: Copyright (C) 1999 by Salvatore Sanfilippo$ 
- * $license: This software is under GPL version 2 of license$ 
- * $date: Fri Nov  5 11:55:48 MET 1999$ 
- * $rev: 8$ 
- */ 
+/*
+ * $smu-mark$
+ * $name: libpcap_stuff.c$
+ * $author: Salvatore Sanfilippo <antirez@invece.org>$
+ * $copyright: Copyright (C) 1999 by Salvatore Sanfilippo$
+ * $license: This software is under GPL version 2 of license$
+ * $date: Fri Nov  5 11:55:48 MET 1999$
+ * $rev: 8$
+ */
 
 /* $Id: libpcap_stuff.c,v 1.3 2004/04/09 23:38:56 antirez Exp $ */
 
@@ -58,7 +58,7 @@ int pcap_recv(char *packet, unsigned int size)
 		printf("DEBUG: under pcap_recv()\n");
 
         while(p == NULL) {
-                p = (unsigned char*) pcap_next(pcapfp, &hdr);
+                p = (char*) pcap_next(pcapfp, &hdr);
 		if (p == NULL && opt_debug)
 			printf("DEBUG: [pcap_recv] p = NULL\n");
 	}
