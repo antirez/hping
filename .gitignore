@@ -1,0 +1,8 @@
+.depend
+*.o
+hping3
+*.swp
+Makefile
+byteorder
+byteorder.h
+systype.h
