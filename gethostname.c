@@ -18,8 +18,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-size_t strlcpy(char *dst, const char *src, size_t siz);
-
 char *get_hostname(char* addr)
 {
 	static char answer[1024];
@@ -36,7 +34,7 @@ char *get_hostname(char* addr)
 	if (!strcmp(addr, lastreq))
 		return last_answerp;
 
-	strlcpy(lastreq, addr, 1024);
+	strncpy(lastreq, addr, 1024);
 	inet_aton(addr, &naddr);
 	he = gethostbyaddr((char*)&naddr, 4, AF_INET);
 
@@ -45,7 +43,7 @@ char *get_hostname(char* addr)
 		return NULL;
 	}
 
-	strlcpy(answer, he->h_name, 1024);
+	strncpy(answer, he->h_name, 1024);
 	last_answerp = answer;
 
 	return answer;
