@@ -44,11 +44,11 @@ if [ ! "$CONFIGOSTYPE" ]; then
 fi
 
 # for BSD/OS use the historical name as it doesn't include '/'
-if [  $CONFIGOSTYPE = "BSD/OS" ]; then
+if [  "$CONFIGOSTYPE" = "BSD/OS" ]; then
 	CONFIGOSTYPE=BSDI
 fi
 
-case $CONFIGOSTYPE in
+case "$CONFIGOSTYPE" in
   SUNOS)
     SOLARISLIB="-lsocket -lresolv -lnsl"
     BUG='/* #define STUPID_SOLARIS_CHECKSUM_BUG */'
@@ -63,31 +63,31 @@ esac
 #
 for TCLPATH_TRY in "/usr/bin/" "/usr/local/bin/" "/bin/"
 do
-	for TCLVER_TRY in "8.4" "8.3" "8.2" "8.1" "8.0"
+	for TCLVER_TRY in "8.6" "8.5" "8.4" "8.3" "8.2" "8.1" "8.0"
 	do
-		if [ -z $TCLSH ]
+		if [ -z "$TCLSH" ]
 		then
-			TCLSH_TRY=${TCLPATH_TRY}tclsh${TCLVER_TRY}
-			if [ -f $TCLSH_TRY ]
+			TCLSH_TRY="${TCLPATH_TRY}tclsh${TCLVER_TRY}"
+			if [ -f "$TCLSH_TRY" ]
 			then
-				TCLSH=$TCLSH_TRY
+				TCLSH="$TCLSH_TRY"
 				echo "===> Found Tclsh in: $TCLSH"
 			fi
 		fi
 	done
 done
-if [ -f $TCLSH ]
+if [ -f "$TCLSH" ]
 then
 	TCL_VER=`echo puts \\$tcl_version | $TCLSH -`
-	USE_TCL='-DUSE_TCL'
+	USE_TCL="-DUSE_TCL"
 	TCL_LIB="-ltcl${TCL_VER}"
-	if [ -e /usr/include/tcl${TCL_VER} ]
+	if [ -e "/usr/include/tcl${TCL_VER}" ]
 	then
 		TCL_INC="-I/usr/include/tcl${TCL_VER}"
-	elif [ -e /usr/include/tcl.h ]
+	elif [ -e "/usr/include/tcl.h" ]
 	then
 		TCL_INC=""
-	elif [ -e /usr/local/include/tcl${TCL_VER} ]
+	elif [ -e "/usr/local/include/tcl${TCL_VER}" ]
 	then
 		TCL_INC="-I/usr/local/include/tcl${TCL_VER}"
 	else
