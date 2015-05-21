@@ -16,7 +16,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#ifdef USE_PCAP_BPF
+#include <pcap/bpf.h>
+#else
 #include <net/bpf.h>
+#endif
 #include <pcap.h>
 
 #include "globals.h"
