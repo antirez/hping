@@ -23,7 +23,11 @@
 #include <sched.h>
 
 #include <sys/ioctl.h>
+#ifdef USE_PCAP_BPF
+#include <pcap/bpf.h>
+#else
 #include <net/bpf.h>
+#endif
 #include <pcap.h>
 
 #include "release.h"
