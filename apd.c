@@ -893,6 +893,7 @@ int ars_d_set_data(struct ars_packet *pkt, int layer, char *f, char *v)
 			return -ARS_ERROR;
 		err = ars_push_data(pkt, layer, binary, blen);
 		free(binary);
+		return err;
 	} else if (strcasecmp(f, "uint32") == 0) {
 		int err;
 		__u32 t, nt;
