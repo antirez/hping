@@ -13,7 +13,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h> /* IP_PROTOIP */
+#include <linux/sockios.h>
+#include <net/if.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
+
+#include "hping2.h"
+#include "globals.h"
 
 void socket_broadcast(int sd)
 {
@@ -36,5 +42,16 @@ void socket_iphdrincl(int sd)
 	{
 		printf("[socket_iphdrincl] can't set IP_HDRINCL option\n");
 		/* non fatal error */
+	}
+}
+
+void socket_bindtodevice(int sd) 
+{
+	struct ifreq ifr;
+	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+	ioctl(sd, SIOCGIFINDEX, &ifr);
+	if(setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr,
+		      sizeof(ifr)) == -1) {
+		printf("BINDTODEVICE failed");
 	}
 }
