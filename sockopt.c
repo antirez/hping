@@ -45,13 +45,13 @@ void socket_iphdrincl(int sd)
 	}
 }
 
-void socket_bindtodevice(int sd) 
+void socket_bindtodevice(int sd)
 {
 	struct ifreq ifr;
 	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	ioctl(sd, SIOCGIFINDEX, &ifr);
 	if(setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr,
 		      sizeof(ifr)) == -1) {
-		printf("BINDTODEVICE failed");
+		printf("BINDTODEVICE failed\n");
 	}
 }
