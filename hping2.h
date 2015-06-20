@@ -399,6 +399,7 @@ void	datafiller(char *p, int size);		/* fill data from file */
 void	data_handler(char *data, int data_size);/* handle data filling */
 void	socket_broadcast(int sd);		/* set SO_BROADCAST option */
 void	socket_iphdrincl(int sd);		/* set SO_IPHDRINCL option */
+void socket_bindtodevice(int sd);               /* set SO_BINDTODEVICE option */
 void	listenmain(void);			/* main for listen mode */
 char	*memstr(char *haystack, char *needle, int size); /* memstr */
 void	tos_help(void);				/* show the TOS help */

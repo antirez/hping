@@ -247,6 +247,8 @@ int main(int argc, char **argv)
 	socket_broadcast(sockraw);
 	/* set SO_IPHDRINCL option */
 	socket_iphdrincl(sockraw);
+	/* set SO_BINDTODEVICE option */
+	socket_bindtodevice(sockraw);
 
 	/* open sock packet or libpcap socket */
 	if (open_pcap() == -1) {
