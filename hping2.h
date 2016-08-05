@@ -123,6 +123,7 @@
 #define DEFAULT_ICMP_IP_TOT_LEN		0 /* computed by send_icmp_*() */
 #define DEFAULT_ICMP_IP_ID		0 /* rand */
 #define DEFAULT_ICMP_CKSUM		-1 /* -1 means compute the cksum */
+#define DEFAULT_ICMP_ECHOID             -1 /* getpid() & 0xffff */
 #define DEFAULT_ICMP_IP_PROTOCOL	6 /* TCP */
 #define DEFAULT_RAW_IP_PROTOCOL		6 /* TCP */
 #define DEFAULT_TRACEROUTE_TTL		1

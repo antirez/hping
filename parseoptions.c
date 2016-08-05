@@ -36,7 +36,7 @@ enum {	OPT_COUNT, OPT_INTERVAL, OPT_NUMERIC, OPT_QUIET, OPT_INTERFACE,
 	OPT_ICMP_IPSRC, OPT_ICMP_IPDST, OPT_ICMP_SRCPORT, OPT_ICMP_DSTPORT,
 	OPT_ICMP_GW, OPT_FORCE_ICMP, OPT_APD_SEND, OPT_SCAN, OPT_FASTER,
 	OPT_BEEP, OPT_FLOOD, OPT_CLOCK_SKEW, OPT_CS_WINDOW, OPT_CS_WINDOW_SHIFT,
-        OPT_CS_VECTOR_LEN };
+        OPT_CS_VECTOR_LEN, OPT_ICMP_ECHOID };
 
 static struct ago_optlist hping_optlist[] = {
 	{ 'c',	"count",	OPT_COUNT,		AGO_NEEDARG },
@@ -102,6 +102,7 @@ static struct ago_optlist hping_optlist[] = {
 	{ '\0',	"icmp-ipid",	OPT_ICMP_IPID,	 	AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0',	"icmp-ipproto",	OPT_ICMP_IPPROTO, 	AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0', "icmp-cksum",	OPT_ICMP_CKSUM,   	AGO_NEEDARG|AGO_EXCEPT0 },
+	{ '\0', "icmp-echoid",  OPT_ICMP_ECHOID,        AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0',	"icmp-ts",	OPT_ICMP_TS,		AGO_NOARG },
 	{ '\0', "icmp-addr",	OPT_ICMP_ADDR,		AGO_NOARG },
 	{ '\0', "tcpexitcode",	OPT_TCPEXITCODE,	AGO_NOARG },
@@ -492,6 +493,9 @@ int parse_options(int argc, char **argv)
 			break;
 		case OPT_ICMP_CKSUM:
 			icmp_cksum = strtol(ago_optarg, NULL, 0);
+			break;
+		case OPT_ICMP_ECHOID:
+			icmp_echoid = strtol(ago_optarg, NULL, 0);
 			break;
 		case OPT_TCPEXITCODE:
 			opt_tcpexitcode = TRUE;

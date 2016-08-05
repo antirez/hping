@@ -114,6 +114,7 @@ extern int	opt_debug,
 		opt_force_icmp,
 		icmp_ip_protocol,
 		icmp_cksum,
+		icmp_echoid,
 		raw_ip_protocol;
 
 extern unsigned char 	lsr[255],
