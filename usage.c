@@ -140,6 +140,7 @@ void icmp_help(void)
 "  --icmp-srcport   set tcp/udp source port      ( default random )\n"
 "  --icmp-dstport   set tcp/udp destination port ( default random )\n"
 "  --icmp-cksum     set icmp checksum            ( default the right cksum)\n"
+"  --icmp-echoid    set icmp echo id             ( default pid & 0xffff )\n"
 	);
 	exit(0);
 }

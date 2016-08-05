@@ -243,7 +243,7 @@ int recv_icmp(void *packet, size_t size)
 	if ((icmp.type == ICMP_ECHOREPLY  ||
 	     icmp.type == ICMP_TIMESTAMPREPLY ||
 	     icmp.type == ICMP_ADDRESSREPLY) &&
-		icmp.un.echo.id == (getpid() & 0xffff))
+		icmp.un.echo.id == htons(icmp_echoid == -1 ? (getpid() & 0xffff) : icmp_echoid))
 	{
 		int icmp_seq = icmp.un.echo.sequence;
 		int status;

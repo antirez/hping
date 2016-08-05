@@ -133,6 +133,7 @@ int
 	icmp_ip_dstport	= DEFAULT_DPORT,
 	opt_force_icmp  = FALSE,
 	icmp_cksum	= DEFAULT_ICMP_CKSUM,
+	icmp_echoid     = DEFAULT_ICMP_ECHOID,
 	raw_ip_protocol	= DEFAULT_RAW_IP_PROTOCOL;
 
 char
