@@ -171,20 +171,20 @@ to X seconds, --interval uX set
 .I wait
 to X micro seconds.
 The default is to wait
-one second between each packet. Using hping2 to transfer files tune this
+one second between each packet. Using hping2 to transfer files tuning this
 option is really important in order to increase transfer rate. Even using
 hping2 to perform idle/spoofing scanning you should tune this option, see
 .B HPING2-HOWTO
 for more information.
 .TP
 .I --fast
-Alias for -i u10000. Hping will send 10 packets for second.
+Alias for -i u10000. Hping will send 10 packets per second.
 .TP
 .I --faster
-Alias for -i u1. Faster then --fast ;) (but not as fast as your computer can send packets due to the signal-driven design).
+Alias for -i u1. Faster than --fast ;) (but not as fast as your computer can send packets due to the signal-driven design).
 .TP
 .I --flood
-Sent packets as fast as possible, without taking care to show incoming replies.
+Send packets as fast as possible, without taking care to show incoming replies.
 This is ways faster than to specify the -i u0 option.
 .TP
 .I -n --numeric
