@@ -61,9 +61,9 @@ esac
 #
 # TCL detection
 #
-for TCLPATH_TRY in "/usr/bin/" "/usr/local/bin/" "/bin/"
+for TCLPATH_TRY in "/usr/bin/" "/usr/local/bin/" "/bin/" "/usr/sbin/tclsh" #added path for tclsh
 do
-	for TCLVER_TRY in "8.4" "8.3" "8.2" "8.1" "8.0"
+	for TCLVER_TRY in "8.4" "8.3" "8.2" "8.1" "8.0" "8.6" # added version 8.6 of tclsh
 	do
 		if [ -z $TCLSH ]
 		then
