@@ -79,6 +79,8 @@ install: hping3
 	@if [ -d ${INSTALL_MANPATH}/man8 ]; then \
 		cp ./docs/hping3.8 ${INSTALL_MANPATH}/man8; \
 		chmod 644 ${INSTALL_MANPATH}/man8/hping3.8; \
+		ln -s hping3.8 ${INSTALL_MANPATH}/man8/hping.8; \
+		ln -s hping3.8 ${INSTALL_MANPATH}/man8/hping2.8; \
 	else \
 		echo "@@@@@@ WARNING @@@@@@"; \
 		echo "Can't install the man page: ${INSTALL_MANPATH}/man8 does not exist"; \
