@@ -29,7 +29,7 @@ enum {	OPT_COUNT, OPT_INTERVAL, OPT_NUMERIC, OPT_QUIET, OPT_INTERFACE,
 	OPT_SAFE, OPT_TRACEROUTE, OPT_TOS, OPT_MTU, OPT_SEQNUM, OPT_BADCKSUM,
 	OPT_SETSEQ, OPT_SETACK, OPT_ICMPTYPE, OPT_ICMPCODE, OPT_END,
 	OPT_RROUTE, OPT_IPPROTO, OPT_ICMP_IPVER, OPT_ICMP_IPHLEN,
-	OPT_ICMP_IPLEN, OPT_ICMP_IPID, OPT_ICMP_IPPROTO, OPT_ICMP_CKSUM,
+	OPT_ICMP_IPLEN, OPT_ICMP_IPID, OPT_ICMP_IPPROTO, OPT_ICMP_CKSUM, OPT_ICMP_ID,
 	OPT_ICMP_TS, OPT_ICMP_ADDR, OPT_TCPEXITCODE, OPT_FAST, OPT_TR_KEEP_TTL,
 	OPT_TCP_TIMESTAMP, OPT_TR_STOP, OPT_TR_NO_RTT, OPT_ICMP_HELP,
 	OPT_RAND_DEST, OPT_RAND_SOURCE, OPT_LSRR, OPT_SSRR, OPT_ROUTE_HELP,
@@ -102,6 +102,7 @@ static struct ago_optlist hping_optlist[] = {
 	{ '\0',	"icmp-ipid",	OPT_ICMP_IPID,	 	AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0',	"icmp-ipproto",	OPT_ICMP_IPPROTO, 	AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0', "icmp-cksum",	OPT_ICMP_CKSUM,   	AGO_NEEDARG|AGO_EXCEPT0 },
+	{ '\0', "icmp-id",	OPT_ICMP_ID,   		AGO_NEEDARG|AGO_EXCEPT0 },
 	{ '\0',	"icmp-ts",	OPT_ICMP_TS,		AGO_NOARG },
 	{ '\0', "icmp-addr",	OPT_ICMP_ADDR,		AGO_NOARG },
 	{ '\0', "tcpexitcode",	OPT_TCPEXITCODE,	AGO_NOARG },
@@ -469,6 +470,9 @@ int parse_options(int argc, char **argv)
 		case OPT_ICMP_IPID:
 			icmp_ip_id = strtol(ago_optarg, NULL, 0);
 			break;
+		case OPT_ICMP_ID:
+			icmp_id = strtol(ago_optarg, NULL, 0);
+			break;
 		case OPT_ICMP_IPPROTO:
 			icmp_ip_protocol = strtol(ago_optarg, NULL, 0);
 			break;
@@ -687,6 +691,9 @@ int parse_options(int argc, char **argv)
 		usec_delay.it_value.tv_usec = 
 		usec_delay.it_interval.tv_usec = 0;
 	}
+	
+	if (icmp_id == -1)
+		icmp_id=getpid();
 
 	return 1;
 }
