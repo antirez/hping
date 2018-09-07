@@ -128,6 +128,7 @@ int
 	icmp_ip_tos	= DEFAULT_ICMP_IP_TOS,
 	icmp_ip_tot_len = DEFAULT_ICMP_IP_TOT_LEN,
 	icmp_ip_id	= DEFAULT_ICMP_IP_ID,
+	icmp_id	= DEFAULT_ICMP_ID,
 	icmp_ip_protocol= DEFAULT_ICMP_IP_PROTOCOL,
 	icmp_ip_srcport	= DEFAULT_DPORT,
 	icmp_ip_dstport	= DEFAULT_DPORT,
