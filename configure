@@ -103,6 +103,14 @@ then
 fi
 
 #
+# PCAP_BPF detection
+#
+if [ -f "/usr/include/pcap/bpf.h" ]
+then
+   USE_PCAP_BPF="-DUSE_PCAP_BPF"
+fi
+
+#
 # configurable stuff
 #
 PCAP="PCAP=-lpcap"
@@ -140,6 +148,7 @@ sed	-e "s^@PCAP@^$PCAP^g" \
 	-e "s^@MANPATH@^$INSTALL_MANPATH^g" \
 	-e "s^@SOLARISLIB@^$SOLARISLIB^g" \
 	-e "s^@USE_TCL@^$USE_TCL^g" \
+	-e "s^@USE_PCAP_BPF@^$USE_PCAP_BPF^g" \
 	-e "s^@TCL_INC@^$TCL_INC^g" \
 	-e "s^@TCL_VER@^$TCL_VER^g" \
 	-e "s^@TCL_LIB@^$TCL_LIB^g" \
