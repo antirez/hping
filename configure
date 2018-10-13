@@ -63,7 +63,7 @@ esac
 #
 for TCLPATH_TRY in "/usr/bin/" "/usr/local/bin/" "/bin/"
 do
-	for TCLVER_TRY in "8.4" "8.3" "8.2" "8.1" "8.0"
+	for TCLVER_TRY in "8.6" "8.5" "8.4" "8.3" "8.2" "8.1" "8.0"
 	do
 		if [ -z $TCLSH ]
 		then
@@ -98,7 +98,7 @@ then
 fi
 if [ -n $USE_TCL ]
 then
-	LIBPOSTFIX=`ls -1 /usr/local/lib/ /usr/lib | grep 'libtcl[0-9]' | grep so | sed -e 's/\.so.*//g' -e 's/libtcl//g' | sort -r | head -1`
+	LIBPOSTFIX=`find /usr/local/lib/ /usr/lib -type f | grep "libtcl[0-9]" | grep so | sed -e 's/.*\///g' -e 's/\.so.*//g' -e 's/libtcl//g' | sort -r | head -1`
 	TCL_LIB="-ltcl${LIBPOSTFIX} -lm -lpthread"
 fi
 
