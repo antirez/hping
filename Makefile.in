@@ -9,7 +9,7 @@
 CC= gcc
 AR=/usr/bin/ar
 RANLIB=/usr/bin/ranlib
-CCOPT= -O2 -Wall @PCAP_INCLUDE@ @TCL_INC@ @USE_TCL@
+CCOPT= -O2 -Wall @PCAP_INCLUDE@ @TCL_INC@ @USE_TCL@ @USE_PCAP_BPF@
 DEBUG= -g
 #uncomment the following if you need libpcap based build under linux
 #(not raccomanded)
