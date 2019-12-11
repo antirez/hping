@@ -65,7 +65,9 @@ void send_udp(void)
 #endif
 
 	/* adds this pkt in delaytable */
-	delaytable_add(sequence, src_port, time(NULL), get_usec(), S_SENT);
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	delaytable_add(sequence, src_port, tv.tv_sec, tv.tv_usec, S_SENT);
 
 	/* send packet */
 	send_ip_handler(packet+PSEUDOHDR_SIZE, packet_size);
