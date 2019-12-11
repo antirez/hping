@@ -54,8 +54,10 @@ int rtt(int *seqp, int recvport, float *ms_delay)
 		status = delaytable[tablepos].status;
 		delaytable[tablepos].status = S_RECV;
 
-		sec_delay = time(NULL) - delaytable[tablepos].sec;
-		usec_delay = get_usec() - delaytable[tablepos].usec;
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		sec_delay = tv.tv_sec - delaytable[tablepos].sec;
+		usec_delay = tv.tv_usec - delaytable[tablepos].usec;
 		if (sec_delay == 0 && usec_delay < 0)
 			usec_delay += 1000000;
 
