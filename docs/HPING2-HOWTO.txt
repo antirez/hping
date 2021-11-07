@@ -65,7 +65,7 @@ __0003: First step with hping
 
   The simplest usage of hping is the following:
 
-	#hping host
+	#hping HOST
 
   This command sends a TCP null-flags packet to port 0 of target
   host every second and show the host replies. For example:
@@ -437,4 +437,4 @@ round-trip min/avg/max = 0.0/0.0/0.0 ms
 
   Tips: Using an idle host to perform spoofed scanning it's usefull to
 	output only replies that show an increment != 1. Try
-	`hping host -r | grep -v "id=+1"'
+	`hping HOST -r | grep -v "id=+1"'

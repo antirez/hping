@@ -16,7 +16,7 @@
 void	show_usage(void)
 {
 	printf(
-"usage: hping host [options]\n"
+"usage: hping HOST [options]\n"
 "  -h  --help      show this help\n"
 "  -v  --version   show version\n"
 "  -c  --count     packet count\n"
