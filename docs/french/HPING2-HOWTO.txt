@@ -72,7 +72,7 @@ __0003 : Premiers pas avec hping
 
   La plus simple utilisation de hping est la suivante :
 
-	#hping host
+	#hping HOST
 
   Cette commande envoie un paquet TCP sans drapeau au port 0 du système
   cible chaque seconde et montre les réponses du système. Par exemple :
@@ -472,4 +472,4 @@ round-trip min/avg/max = 0.0/0.0/0.0 ms
   Conseil : en utilisant un système inactif pour réaliser un scan usurpé il
             est utile de ne montrer que les réponses qui montrent un
             incrément différent de 1. Essayez
-            `hping host -r | grep -v "id=+1"'
+            `hping HOST -r | grep -v "id=+1"'
