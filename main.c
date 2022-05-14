@@ -30,6 +30,8 @@
 
 #include "hping2.h"
 
+volatile struct delaytable_element delaytable[TABLESIZE];
+
 /* globals */
 unsigned int
 	tcp_th_flags = 0,
