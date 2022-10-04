@@ -1,12 +1,12 @@
-/* 
- * $smu-mark$ 
- * $name: main.c$ 
- * $author: Salvatore Sanfilippo <antirez@invece.org>$ 
- * $copyright: Copyright (C) 1999 by Salvatore Sanfilippo$ 
- * $license: This software is under GPL version 2 of license$ 
- * $date: Fri Nov  5 11:55:48 MET 1999$ 
- * $rev: 8$ 
- */ 
+/*
+ * $smu-mark$
+ * $name: main.c$
+ * $author: Salvatore Sanfilippo <antirez@invece.org>$
+ * $copyright: Copyright (C) 1999 by Salvatore Sanfilippo$
+ * $license: This software is under GPL version 2 of license$
+ * $date: Fri Nov  5 11:55:48 MET 1999$
+ * $rev: 8$
+ */
 
 /*
  * hping official page at http://www.kyuzz.org/antirez
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 		if (setflags[0] == '\0')    strcat(setflags, "NO FLAGS are");
 		hdr_size = IPHDR_SIZE + TCPHDR_SIZE;
 	}
-	
+
 	printf("HPING %s (%s %s): %s set, %d headers + %d data bytes\n",
 		targetname,
 		ifname,
@@ -371,8 +371,17 @@ int main(int argc, char **argv)
 	if (opt_flood) {
 		fprintf(stderr,
 			"hping in flood mode, no replies will be shown\n");
-		while (1) {
-			send_packet(0);
+		/* Respect the count option in flood mode, but don't add the extra bookkeeping if it's not set.
+		 * If this is too slow, maybe unroll the loop and send 10 or 1000 in each iteration. */
+		if(count != -1) {
+			long countdown = count - 1; /* Already sent one packet above. */
+			while(countdown--) {
+				send_packet(0);
+			}
+		} else {
+			while (1) {
+				send_packet(0);
+			}
 		}
 	}
 
