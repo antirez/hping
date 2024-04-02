@@ -45,8 +45,8 @@ int rtt(int *seqp, int recvport, float *ms_delay)
 				tablepos = i;
 				break;
 			}
-			if (i != TABLESIZE)
-				*seqp = delaytable[i].seq;
+		if (i != TABLESIZE)
+			*seqp = delaytable[i].seq;
 	}
 
 	if (tablepos != -1)

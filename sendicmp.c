@@ -253,7 +253,7 @@ void send_icmp_other(void)
 
 	/* fill IP */
 	if (left_space == 0) goto no_space_left;
-	memcpy(packet+ICMPHDR_SIZE, &icmp_ip, left_space);
+	memcpy(packet+ICMPHDR_SIZE, &icmp_ip, ICMPHDR_SIZE);
 	left_space -= IPHDR_SIZE;
 	data += IPHDR_SIZE;
 	if (left_space <= 0) goto no_space_left;

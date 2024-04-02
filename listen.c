@@ -27,6 +27,7 @@ void listenmain(void)
 	int stdoutFD = fileno(stdout);
 	char packet[IP_MAX_SIZE+linkhdr_size];
 	char *p, *ip_packet;
+	ssize_t bytes_written;
 	struct myiphdr ip;
 	__u16 id;
 	static __u16 exp_id; /* expected id */
@@ -74,7 +75,9 @@ void listenmain(void)
 			}
 
 			p+=strlen(sign);
-			write(stdoutFD, p, size-(p-ip_packet));
+			bytes_written = write(stdoutFD, p, size-(p-ip_packet));
+			if (bytes_written == -1)
+				fprintf(stderr, "Unable to send packet\n");
 		}
 	}
 }

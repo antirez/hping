@@ -34,7 +34,7 @@ char *get_hostname(char* addr)
 	if (!strcmp(addr, lastreq))
 		return last_answerp;
 
-	strncpy(lastreq, addr, 1024);
+	strncpy(lastreq, addr, 1023);
 	inet_aton(addr, &naddr);
 	he = gethostbyaddr((char*)&naddr, 4, AF_INET);
 
@@ -43,7 +43,7 @@ char *get_hostname(char* addr)
 		return NULL;
 	}
 
-	strncpy(answer, he->h_name, 1024);
+	strncpy(answer, he->h_name, 1023);
 	last_answerp = answer;
 
 	return answer;
