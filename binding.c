@@ -20,8 +20,8 @@
 
 void inc_destparm(int sid)
 {
-	static long sec = 0;
-	static long usec = 0;
+	static struct timeval tv = {0, 0};
+	struct timeval tmptv;
 	int *p;
 	int errno_save = errno;
 
@@ -38,7 +38,9 @@ void inc_destparm(int sid)
 		return;
 	}
 
-	if ( (time(NULL) == sec) && ((get_usec() - usec) < 200000) ) {
+	gettimeofday(&tmptv, NULL);
+	if ( (tmptv.tv_sec == tv.tv_sec) &&
+	     ((tmptv.tv_usec - tv.tv_usec) < 200000) ) {
 		if (*p > 0)
 			(*p)-=2;
 		if (*p < 0)
@@ -50,8 +52,7 @@ void inc_destparm(int sid)
 	printf("%d: ", *p);
 	fflush(stdout);
 
-	sec = time(NULL);
-	usec = get_usec();
+	gettimeofday(&tv, NULL);
 	signal(SIGTSTP, inc_destparm);
 	errno = errno_save;
 }

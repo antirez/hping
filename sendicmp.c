@@ -67,6 +67,7 @@ void send_icmp_echo(void)
 {
 	char *packet, *data;
 	struct myicmphdr *icmp;
+	struct timeval tmptv;
 
 	packet = malloc(ICMPHDR_SIZE + data_size);
 	if (packet == NULL) {
@@ -96,8 +97,10 @@ void send_icmp_echo(void)
 		icmp->checksum = icmp_cksum;
 
 	/* adds this pkt in delaytable */
-	if (opt_icmptype == ICMP_ECHO)
-		delaytable_add(_icmp_seq, 0, time(NULL), get_usec(), S_SENT);
+	if (opt_icmptype == ICMP_ECHO) {
+		gettimeofday(&tmptv, NULL);
+		delaytable_add(_icmp_seq, 0, tmptv.tv_sec, tmptv.tv_usec, S_SENT);
+	}
 
 	/* send packet */
 	send_ip_handler(packet, ICMPHDR_SIZE + data_size);
@@ -111,6 +114,7 @@ void send_icmp_timestamp(void)
 	char *packet;
 	struct myicmphdr *icmp;
 	struct icmp_tstamp_data *tstamp_data;
+	struct timeval tmptv;
 
 	packet = malloc(ICMPHDR_SIZE + sizeof(struct icmp_tstamp_data));
 	if (packet == NULL) {
@@ -140,8 +144,10 @@ void send_icmp_timestamp(void)
 		icmp->checksum = icmp_cksum;
 
 	/* adds this pkt in delaytable */
-	if (opt_icmptype == ICMP_TIMESTAMP)
-		delaytable_add(_icmp_seq, 0, time(NULL), get_usec(), S_SENT);
+	if (opt_icmptype == ICMP_TIMESTAMP) {
+		gettimeofday(&tmptv, NULL);
+		delaytable_add(_icmp_seq, 0, tmptv.tv_sec, tmptv.tv_usec, S_SENT);
+	}
 
 	/* send packet */
 	send_ip_handler(packet, ICMPHDR_SIZE + sizeof(struct icmp_tstamp_data));
@@ -154,6 +160,7 @@ void send_icmp_address(void)
 {
 	char *packet;
 	struct myicmphdr *icmp;
+	struct timeval tmptv;
 
 	packet = malloc(ICMPHDR_SIZE + 4);
 	if (packet == NULL) {
@@ -180,8 +187,10 @@ void send_icmp_address(void)
 		icmp->checksum = icmp_cksum;
 
 	/* adds this pkt in delaytable */
-	if (opt_icmptype == ICMP_TIMESTAMP)
-		delaytable_add(_icmp_seq, 0, time(NULL), get_usec(), S_SENT);
+	if (opt_icmptype == ICMP_TIMESTAMP) {
+		gettimeofday(&tmptv, NULL);
+		delaytable_add(_icmp_seq, 0, tmptv.tv_sec, tmptv.tv_usec, S_SENT);
+	}
 
 	/* send packet */
 	send_ip_handler(packet, ICMPHDR_SIZE + 4);

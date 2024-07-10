@@ -32,6 +32,7 @@ int rtt(int *seqp, int recvport, float *ms_delay)
 {
 	long sec_delay = 0, usec_delay = 0;
 	int i, tablepos = -1, status;
+	struct timeval tmptv;
 
 	if (*seqp != 0) {
 		for (i = 0; i < TABLESIZE; i++)
@@ -54,10 +55,9 @@ int rtt(int *seqp, int recvport, float *ms_delay)
 		status = delaytable[tablepos].status;
 		delaytable[tablepos].status = S_RECV;
 
-		sec_delay = time(NULL) - delaytable[tablepos].sec;
-		usec_delay = get_usec() - delaytable[tablepos].usec;
-		if (sec_delay == 0 && usec_delay < 0)
-			usec_delay += 1000000;
+		gettimeofday(&tmptv, NULL);
+		sec_delay = tmptv.tv_sec - delaytable[tablepos].sec;
+		usec_delay = tmptv.tv_usec - delaytable[tablepos].usec;
 
 		*ms_delay = (sec_delay * 1000) + ((float)usec_delay / 1000);
 		minavgmax(*ms_delay);
@@ -74,11 +74,11 @@ int rtt(int *seqp, int recvport, float *ms_delay)
 		printf("\n\nSANITY CHECK in rtt.c FAILED!\n");
 		printf("- seqnum = %d\n", *seqp);
 		printf("- status = %d\n", status);
-		printf("- get_usec() = %ld\n", (long int) get_usec());
+		printf("- usec = %ld\n", tmptv.tv_usec);
 		printf("- delaytable.usec = %ld\n", 
                        (long int) delaytable[tablepos].usec);
 		printf("- usec_delay = %ld\n", usec_delay);
-		printf("- time(NULL) = %ld\n", (long int) time(NULL));
+		printf("- sec = %ld\n", tmptv.tv_sec);
 		printf("- delaytable.sec = %ld\n", 
                        (long int) delaytable[tablepos].sec);
 		printf("- sec_delay = %ld\n", sec_delay);

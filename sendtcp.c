@@ -29,6 +29,7 @@ void send_tcp(void)
 	struct mytcphdr		*tcp;
 	struct pseudohdr	*pseudoheader;
 	unsigned char		*tstamp;
+	struct timeval tmptv;
 
 	if (opt_tcp_timestamp)
 		tcp_opt_size = 12;
@@ -86,7 +87,8 @@ void send_tcp(void)
 #endif
 
 	/* adds this pkt in delaytable */
-	delaytable_add(sequence, src_port, time(NULL), get_usec(), S_SENT);
+	gettimeofday(&tmptv, NULL);
+	delaytable_add(sequence, src_port, tmptv.tv_sec, tmptv.tv_usec, S_SENT);
 
 	/* send packet */
 	send_ip_handler(packet+PSEUDOHDR_SIZE, packet_size);

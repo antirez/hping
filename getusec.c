@@ -13,12 +13,14 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+/* A signed 32-bit integer can represent a maximum of 35 minutes
+ * when measured in microseconds. */
 time_t get_usec(void)
 {
 	struct timeval tmptv;
 
 	gettimeofday(&tmptv, NULL);
-	return tmptv.tv_usec;
+	return ((tmptv.tv_sec % 1800) * 1000000 + tmptv.tv_usec);
 }
 
 time_t milliseconds(void)
