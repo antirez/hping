@@ -6,6 +6,10 @@
 #ifndef _ARS_H
 #define _ARS_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /* define before including sys/socket.h */
 #if defined(__APPLE__) && !defined(_BSD_SOCKLEN_T_)
 #define _BSD_SOCKLEN_T_ int
@@ -15,9 +19,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
-#include "systype.h"
 #include "in.h"
-#include "byteorder.h"
 #include "adbuf.h"
 #include "fixtypes.h"
 

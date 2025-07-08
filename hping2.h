@@ -13,12 +13,14 @@
 #ifndef _HPING2_H
 #define _HPING2_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <limits.h>
-#include "byteorder.h"
-#include "systype.h"
 #include "fixtypes.h"
 
 /* types */
@@ -357,7 +359,7 @@ struct delaytable_element {
 	int status;
 };
 
-volatile struct delaytable_element delaytable[TABLESIZE];
+extern volatile struct delaytable_element delaytable[TABLESIZE];
 
 /* protos */
 void	nop(void);				/* nop */
