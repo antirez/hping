@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+name: yaml-lint
+'on':
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+permissions:
+  contents: read
+jobs:
+  yaml-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Lint YAML files
+        uses: ibiqlik/action-yamllint@b74a2626a991d676b6ec243a6458ff86cccf2d2d

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+rules:
+  forbidden-uses:
+    config:
+      deny:
+        - actions/checkout@v1

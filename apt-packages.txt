@@ -1,0 +1,7 @@
+build-essential
+autoconf
+automake
+libtool
+pkg-config
+libpcap-dev
+tcl-dev

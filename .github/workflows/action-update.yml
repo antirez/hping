@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+name: action-update
+'on':
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+permissions:
+  contents: read
+jobs:
+  action-update:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Run renovate
+        uses: renovatebot/github-action@7876d7a812254599d262d62b6b2c2706018258a2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

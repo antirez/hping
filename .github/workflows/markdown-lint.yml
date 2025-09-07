@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+name: markdown-lint
+'on':
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+permissions:
+  contents: read
+concurrency:
+  group: markdown-lint-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  markdown-lint:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Lint Markdown files
+        # yamllint disable-line rule:line-length
+        uses: DavidAnson/markdownlint-cli2-action@0a509faff138d7a586d9ee1fea0f5fefbddb7946
+        with:
+          globs: '**/*.md'

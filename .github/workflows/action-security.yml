@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+name: action-security
+'on':
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+jobs:
+  action-security:
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Download and installs zizmor
+        run: |
+          site="https://github.com/zizmorcore/zizmor/releases/latest/download"
+          file="zizmor-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sS -L --retry 3 -o /tmp/${file} ${site}/${file}
+          mkdir /tmp/as
+          tar xfz /tmp/${file} -C /tmp/as --no-same-owner --no-same-permissions
+          chmod +x /tmp/as/zizmor
+      - name: Check security in workflow files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          /tmp/as/zizmor .github/workflows --config .github/zizmor.yml
+      - name: Stop pipeline if issues are found
+        run: |
+          if grep -q "error" zizmor.log; then
+            echo "Zizmor found some security issues:"
+            cat zizmor.log
+            exit 1
+          fi

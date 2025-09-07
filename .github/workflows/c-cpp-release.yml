@@ -1,0 +1,161 @@
+# SPDX-FileCopyrightText: Copyright (C) 2025 Fabrício Barros Cabral
+# SPDX-License-Identifier: MIT
+---
+name: c-cpp-release
+'on':
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+permissions:
+  contents: read
+jobs:
+  c-cpp-linux-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          if [ -s apt-packages.txt ]; then
+            xargs -a apt-packages.txt sudo apt-get install \
+              -y --no-install-recommends
+          fi
+      - name: Configure and build
+        run: |
+          [ -x ./autogen.sh ] && ./autogen.sh
+          [ -x ./configure ] && ./configure
+          [ -s Makefile ] || {
+            echo "I couldn't find an autogen.sh, configure, or Makefile."
+            echo "Please check your files."
+            exit 1
+          }
+          make
+      - name: Get properties from configure.ac
+        id: props
+        # yamllint disable rule:line-length
+        run: |
+          name="$(sed -n 's/AC_INIT(\[\([^]]*\)\],.*/\1/p' configure.ac)"
+          echo "name=${name}" >> "${GITHUB_OUTPUT}"
+          version="$(sed -n 's/AC_INIT(\[[^]]*\], \[\([^]]*\)\], \[[^]]*\])/\1/p' configure.ac)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+        # yamllint enable rule:line-length
+      - name: Create source package
+        run: |
+          make dist
+      - name: Create Linux binary package
+        run: |
+          make binary-dist
+      - name: Prepare packages to distribution
+        env:
+          NAME: ${{ steps.props.outputs.name }}
+          VERSION: ${{ steps.props.outputs.version }}
+        run: |
+          # Sanitize variables for security purposes
+          safe_name="$(echo "${NAME}" | tr -cd '[:alnum:]._-' )"
+          safe_version="$(echo "${VERSION}" | tr -cd '[:alnum:]._-' )"
+
+          # Check if variables are empty
+          [ -z "$safe_name" ] && { echo "Invalid name"; exit 1; }
+          [ -z "$safe_version" ] && { echo "Invalid version"; exit 1; }
+
+          # Check if files exists
+          src="${safe_name}-${safe_version}.tar.gz"
+          bin="${safe_name}-${safe_version}-bin.tar.gz"
+          [ -f "$src" ] || { echo "File '${src}' not found"; exit 1; }
+          [ -f "$bin" ] || { echo "File '${bin}' not found"; exit 1; }
+
+          # Move files
+          mkdir -p dist
+          mv "${src}" dist/
+          mv "${bin}" "dist/${safe_name}-${safe_version}-linux.tar.gz"
+  c-cpp-macos-build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          brew update
+          if [ -s brew-packages.txt ]; then
+            xargs brew install < brew-packages.txt
+          fi
+      - name: Configure and build
+        run: |
+          [ -x ./autogen.sh ] && ./autogen.sh
+          [ -x ./configure ] && ./configure
+          [ -s Makefile ] || {
+            echo "I couldn't find an autogen.sh, configure, or Makefile."
+            echo "Please check your files."
+            exit 1
+          }
+          make
+      - name: Get properties from configure.ac
+        id: props
+        # yamllint disable rule:line-length
+        run: |
+          name="$(sed -n 's/AC_INIT(\[\([^]]*\)\],.*/\1/p' configure.ac)"
+          echo "name=${name}" >> "${GITHUB_OUTPUT}"
+          version="$(sed -n 's/AC_INIT(\[[^]]*\], \[\([^]]*\)\], \[[^]]*\])/\1/p' configure.ac)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+        # yamllint enable rule:line-length
+      - name: Create macOS binary package
+        run: |
+          make binary-dist
+      - name: Prepare package to distribution
+        env:
+          NAME: ${{ steps.props.outputs.name }}
+          VERSION: ${{ steps.props.outputs.version }}
+        run: |
+          # Sanitize variables for security purposes
+          safe_name="$(echo "${NAME}" | tr -cd '[:alnum:]._-' )"
+          safe_version="$(echo "${VERSION}" | tr -cd '[:alnum:]._-' )"
+
+          # Check if variables are empty
+          [ -z "$safe_name" ] && { echo "Invalid name"; exit 1; }
+          [ -z "$safe_version" ] && { echo "Invalid version"; exit 1; }
+
+          # Check if file exist
+          bin="${safe_name}-${safe_version}-bin.tar.gz"
+          [ -f "$bin" ] || { echo "File '${bin}' not found"; exit 1; }
+
+          # Move file
+          mkdir -p "dist"
+          mv "${bin}" dist/"${safe_name}-${safe_version}-macos.tar.gz"
+  c-cpp-release:
+    runs-on: ubuntu-24.04
+    needs: [c-cpp-linux-build, c-cpp-macos-build]
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: linux-dist
+          path: dist
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: macos-dist
+          path: dist
+      - name: Set release tag
+        id: tag
+        run: |
+          # Detects which tag triggered the build
+          echo "tag=${GITHUB_REF##*/}" >> "${GITHUB_OUTPUT}"
+      - name: Release artifacts
+        # yamllint disable-line rule:line-length
+        uses: softprops/action-gh-release@fbadcc90e88ecface60a0a0d123795b784ceb239
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: dist/*.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
