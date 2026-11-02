@@ -77,6 +77,8 @@ struct in_addr in;
 			++cp;
 			if (j > IPOPT_MINOFF)
 				for (;;) {
+					if (hlen < 4)
+						break;
 					l = *++cp;
 					l = (l<<8) + *++cp;
 					l = (l<<8) + *++cp;
@@ -112,6 +114,8 @@ struct in_addr in;
 			memcpy(old_rr, cp, i);
 			(void)printf("RR: ");
 			for (;;) {
+				if (hlen < 4)
+					break;
 				l = *++cp;
 				l = (l<<8) + *++cp;
 				l = (l<<8) + *++cp;

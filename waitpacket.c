@@ -620,7 +620,7 @@ void print_tcp_timestamp(void *tcp, int tcpsize, int rttms)
 	tcphdrlen = tmptcphdr.th_off * 4;
 
 	/* bad len or no options in the TCP header */
-	if (tcphdrlen <= 20 || tcphdrlen < tcpsize)
+	if (tcphdrlen <= 20 || tcphdrlen > tcpsize)
 		return;
 	optlen = tcphdrlen - TCPHDR_SIZE;
 	opt = (unsigned char*)tcp + TCPHDR_SIZE; /* skips the TCP fix header */
