@@ -57,7 +57,8 @@ void log_icmp_unreach(char *src_addr, unsigned short icmp_code)
 	"precedence cut off from"		/* code 15 */
 	};
 	
-	if (icmp_unreach_msg[icmp_code] != NULL)
+	if (icmp_code < (sizeof(icmp_unreach_msg)/sizeof(icmp_unreach_msg[0]))
+	    && icmp_unreach_msg[icmp_code] != NULL)
 		printf("ICMP %s ip=%s", icmp_unreach_msg[icmp_code], src_addr);
 	else
 		printf("ICMP Unreachable type=%d from ip=%s",

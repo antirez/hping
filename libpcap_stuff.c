@@ -68,7 +68,7 @@ int pcap_recv(char *packet, unsigned int size)
         if (pcapsize < size)
                 size = pcapsize;
 
-        memcpy(packet, p, pcapsize);
+        memcpy(packet, p, size);
 
-        return pcapsize;
+        return size;
 }
